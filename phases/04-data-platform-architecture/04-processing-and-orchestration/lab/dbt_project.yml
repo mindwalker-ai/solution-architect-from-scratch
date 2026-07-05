@@ -1,0 +1,16 @@
+name: 'kirim_cepat_lab'
+version: '1.0.0'
+config-version: 2
+profile: 'kirim_cepat_lab'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  kirim_cepat_lab:
+    staging:
+      +materialized: view      # Silver: cheap, always fresh
+    marts:
+      +materialized: table     # Gold: materialized business marts

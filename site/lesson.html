@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson - Solution Architect From Scratch</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2312379C'/><text x='3' y='22' font-size='14' font-weight='bold' font-family='system-ui' fill='%23DCEBFD'>OS</text></svg>">
+  <meta name="description" content="Solution Architect From Scratch - Lesson Viewer">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--accent);
+      z-index: 9999;
+      transition: width 0.05s linear;
+      width: 0%;
+    }
+
+    .lesson-layout {
+      display: flex;
+      padding-top: 64px;
+      min-height: 100vh;
+    }
+
+    .lesson-sidebar {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      bottom: 0;
+      width: 260px;
+      background: var(--bg-surface);
+      border-right: 2px dashed var(--border);
+      overflow-y: auto;
+      z-index: 50;
+      padding: 20px 0;
+      transition: transform 0.3s ease;
+    }
+
+    .lesson-sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 74px;
+      left: 10px;
+      z-index: 60;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: var(--text);
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+
+    .lesson-sidebar-toggle:hover {
+      border-color: var(--accent);
+    }
+
+    .sidebar-phase-header {
+      padding: 8px 20px;
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-lesson-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: background-color 0.15s, color 0.15s;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-lesson-link:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text);
+    }
+
+    .sidebar-lesson-link.active {
+      color: var(--accent);
+      background: rgba(255, 107, 107, 0.08);
+      border-left-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .sidebar-lesson-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sidebar-lesson-dot.complete {
+      background: var(--complete);
+    }
+
+    .sidebar-lesson-dot.planned {
+      background: var(--planned);
+    }
+
+    .sidebar-phase-nav {
+      padding: 16px 20px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-phase-nav a {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 0;
+      transition: color 0.15s;
+    }
+
+    .sidebar-phase-nav a:hover {
+      color: var(--accent);
+    }
+
+    .lesson-main {
+      flex: 1;
+      margin-left: 260px;
+      display: flex;
+      justify-content: center;
+      padding: 40px 32px 80px;
+    }
+
+    .lesson-content {
+      max-width: 720px;
+      width: 100%;
+    }
+
+    .lesson-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .lesson-loading-text {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    .lesson-error {
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .lesson-error h2 {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+
+    .lesson-error p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .lesson-article h1 {
+      font-family: var(--font-heading);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid var(--accent);
+      position: relative;
+    }
+
+    .lesson-article h1::before {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent);
+      transform: rotate(-0.3deg);
+    }
+
+    .lesson-article h1::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 5%;
+      right: 5%;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0.4;
+      transform: rotate(0.5deg);
+    }
+
+    .lesson-article h2 {
+      font-family: var(--font-heading);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px dashed var(--border);
+    }
+
+    .lesson-article h2.section-build {
+      border-left: 4px solid var(--secondary);
+      padding-left: 16px;
+      border-bottom: none;
+    }
+
+    .lesson-article h2.section-use {
+      border-left: 4px solid var(--complete);
+      padding-left: 16px;
+      border-bottom: none;
+    }
+
+    .lesson-article h2.section-ship {
+      border-left: 4px solid var(--accent);
+      padding-left: 16px;
+      border-bottom: none;
+    }
+
+    .lesson-article h3 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .lesson-article p {
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      line-height: 1.85;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .lesson-article .motto {
+      font-family: var(--font-heading);
+      font-style: italic;
+      font-size: 1.4rem;
+      line-height: 1.6;
+      color: var(--text);
+      border-left: 4px solid var(--accent);
+      background: rgba(255, 107, 107, 0.06);
+      padding: 20px 24px;
+      margin: 24px 0 32px;
+      border-radius: 0 12px 12px 0;
+    }
+
+    [data-theme="light"] .lesson-article .motto {
+      background: rgba(255, 77, 77, 0.06);
+    }
+
+    .lesson-article .drop-cap::first-letter {
+      float: left;
+      font-family: var(--font-heading);
+      font-size: 3.5em;
+      line-height: 0.8;
+      padding-right: 8px;
+      padding-top: 4px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .lesson-article blockquote {
+      border-left: 3px solid var(--border);
+      padding: 12px 20px;
+      margin: 16px 0;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .lesson-article strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .lesson-article em {
+      font-style: italic;
+    }
+
+    .lesson-article a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--accent);
+      transition: border-color 0.2s;
+    }
+
+    .lesson-article a:hover {
+      border-bottom-style: solid;
+    }
+
+    .lesson-article hr {
+      border: none;
+      border-top: 2px dashed var(--border);
+      margin: 32px 0;
+    }
+
+    .lesson-article ul {
+      list-style: none;
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    .lesson-article ul li {
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      line-height: 1.85;
+      color: var(--text);
+      position: relative;
+      padding-left: 8px;
+      margin-bottom: 4px;
+    }
+
+    .lesson-article ul li::before {
+      content: '';
+      position: absolute;
+      left: -16px;
+      top: 12px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .lesson-article ol {
+      list-style: none;
+      padding-left: 24px;
+      margin-bottom: 16px;
+      counter-reset: ol-counter;
+    }
+
+    .lesson-article ol li {
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      line-height: 1.85;
+      color: var(--text);
+      position: relative;
+      padding-left: 12px;
+      margin-bottom: 4px;
+      counter-increment: ol-counter;
+    }
+
+    .lesson-article ol li::before {
+      content: counter(ol-counter);
+      position: absolute;
+      left: -20px;
+      top: 0;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+
+    .lesson-article code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      color: var(--accent);
+    }
+
+    .lesson-article pre {
+      position: relative;
+      margin: 20px 0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .lesson-article pre code {
+      display: block;
+      background: #1a1a2e;
+      color: #e0ddd5;
+      padding: 20px 24px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="light"] .lesson-article pre code {
+      background: #2d2b3d;
+      color: #e0ddd5;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .code-lang {
+      position: absolute;
+      top: 0;
+      left: 0;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 12px;
+      background: rgba(255, 107, 107, 0.15);
+      color: var(--accent);
+      border-radius: 12px 0 8px 0;
+      z-index: 2;
+    }
+
+    .code-copy {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      z-index: 2;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .code-copy:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .syn-keyword { color: #6ba3ff; }
+    .syn-string { color: #5ab88f; }
+    .syn-number { color: #ff6b6b; }
+    .syn-comment { color: #6b6b8a; font-style: italic; }
+    .syn-function { color: #dfc47d; }
+    .syn-operator { color: #c594c5; }
+
+    .lesson-article .table-wrap {
+      overflow-x: auto;
+      margin: 20px 0;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      border: 2px solid var(--border);
+    }
+
+    .lesson-article table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-body);
+      font-size: 1rem;
+    }
+
+    .lesson-article thead th {
+      background: #fff9c4;
+      color: #3d3d00;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 12px 16px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      border-bottom: 2px dashed var(--border);
+    }
+
+    [data-theme="dark"] .lesson-article thead th {
+      background: #3d3a1a;
+      color: #fff9c4;
+    }
+
+    .lesson-article tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px dashed var(--border);
+      color: var(--text);
+    }
+
+    .lesson-article tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    [data-theme="light"] .lesson-article tbody tr:nth-child(even) {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .lesson-article tbody tr:hover {
+      background: rgba(255, 107, 107, 0.04);
+    }
+
+    .lesson-article .key-terms-table .col-says {
+      font-family: var(--font-body);
+      font-style: italic;
+    }
+
+    .lesson-article .mermaid-container {
+      margin: 24px 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .lesson-article .mermaid-container svg {
+      max-width: 100%;
+    }
+
+    .lesson-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .lesson-meta-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+    }
+
+    .lesson-nav-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 16px;
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 2px dashed var(--border);
+    }
+
+    .lesson-nav-btn {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 16px 20px;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      max-width: 48%;
+    }
+
+    .lesson-nav-btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-hard);
+    }
+
+    .lesson-nav-btn .nav-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .lesson-nav-btn .nav-title {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .lesson-nav-btn.next {
+      text-align: right;
+      margin-left: auto;
+    }
+
+    @media (max-width: 900px) {
+      .lesson-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .lesson-sidebar.open {
+        transform: translateX(0);
+      }
+
+      .lesson-sidebar-toggle {
+        display: flex;
+      }
+
+      .lesson-main {
+        margin-left: 0;
+        padding: 40px 20px 80px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .lesson-article h1 {
+        font-size: 1.8rem;
+      }
+
+      .lesson-article h2 {
+        font-size: 1.4rem;
+      }
+
+      .lesson-article p,
+      .lesson-article ul li,
+      .lesson-article ol li {
+        font-size: 1.05rem;
+      }
+
+      .lesson-article .motto {
+        font-size: 1.15rem;
+        padding: 16px 18px;
+      }
+
+      .lesson-article .drop-cap::first-letter {
+        font-size: 2.8em;
+      }
+
+      .lesson-nav-bottom {
+        flex-direction: column;
+      }
+
+      .lesson-nav-btn {
+        max-width: 100%;
+      }
+
+      .lesson-nav-btn.next {
+        text-align: left;
+      }
+    }
+
+    .ai-panels {
+      margin-top: 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .ai-panel {
+      border: 2px solid var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      padding: 32px 28px;
+      background: var(--bg-surface);
+      position: relative;
+      box-shadow: var(--shadow-hard);
+    }
+
+    .ai-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .ai-panel-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .ai-panel-icon.coral { background: rgba(255, 107, 107, 0.15); color: var(--accent); }
+    .ai-panel-icon.blue { background: rgba(107, 163, 255, 0.15); color: var(--secondary); }
+    .ai-panel-icon.green { background: rgba(90, 184, 143, 0.15); color: var(--complete); }
+
+    .ai-panel-title {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .ai-panel-subtitle {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: -16px;
+      margin-bottom: 20px;
+    }
+
+    .output-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .output-card {
+      border: 2px solid var(--border);
+      border-radius: 15px 225px 15px 255px / 225px 15px 255px 15px;
+      padding: 20px;
+      background: var(--bg);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .output-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-hard);
+    }
+
+    .output-card-name {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+
+    .output-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 10px;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      margin-bottom: 10px;
+    }
+
+    .output-badge.prompt { background: rgba(255, 107, 107, 0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .output-badge.skill { background: rgba(107, 163, 255, 0.15); color: var(--secondary); border: 1px solid var(--secondary); }
+    .output-badge.other { background: rgba(90, 184, 143, 0.1); color: var(--complete); border: 1px solid var(--complete); }
+
+    .output-desc {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .output-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .output-btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 5px 12px;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .output-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .output-install-hint {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: var(--code-bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      word-break: break-all;
+      display: none;
+    }
+
+    .output-install-hint.visible { display: block; }
+
+    .code-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .code-card {
+      background: #1a1a2e;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    [data-theme="light"] .code-card {
+      background: #2d2b3d;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .code-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 rgba(107, 163, 255, 0.4);
+    }
+
+    .code-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .code-lang-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .code-card-name {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #e0ddd5;
+      word-break: break-all;
+    }
+
+    .code-card-size {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #6b6b8a;
+      margin-bottom: 12px;
+    }
+
+    .code-card-run {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #5ab88f;
+      background: rgba(90, 184, 143, 0.08);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+
+    .code-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .code-card-btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #b0aec0;
+      background: transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .code-card-btn:hover {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    .quiz-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .quiz-question {
+      border: 2px solid var(--border);
+      border-radius: 15px 225px 15px 255px / 225px 15px 255px 15px;
+      padding: 20px;
+      background: var(--bg);
+    }
+
+    .quiz-question-text {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .quiz-question-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .quiz-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: transparent;
+      text-align: left;
+      width: 100%;
+    }
+
+    .quiz-option:hover:not(.selected):not(.disabled) {
+      border-color: var(--accent);
+      background: rgba(255, 107, 107, 0.04);
+    }
+
+    .quiz-option .opt-letter {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 2px solid var(--border);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+
+    .quiz-option.selected.correct {
+      border-color: var(--complete);
+      background: rgba(90, 184, 143, 0.08);
+    }
+
+    .quiz-option.selected.correct .opt-letter {
+      border-color: var(--complete);
+      background: var(--complete);
+      color: #fff;
+    }
+
+    .quiz-option.selected.wrong {
+      border-color: var(--accent);
+      background: rgba(255, 107, 107, 0.08);
+    }
+
+    .quiz-option.selected.wrong .opt-letter {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .quiz-option.disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+
+    .quiz-option.disabled.is-answer {
+      opacity: 1;
+      border-color: var(--complete);
+      background: rgba(90, 184, 143, 0.06);
+    }
+
+    .quiz-explanation {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding: 12px 14px;
+      border-left: 3px solid var(--complete);
+      background: rgba(90, 184, 143, 0.04);
+      border-radius: 0 8px 8px 0;
+      display: none;
+    }
+
+    .quiz-explanation.visible { display: block; }
+
+    .quiz-score {
+      text-align: center;
+      padding: 24px;
+      border: 2px solid var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      background: var(--bg);
+      display: none;
+    }
+
+    .quiz-score.visible { display: block; }
+
+    .quiz-score-number {
+      font-family: var(--font-heading);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .quiz-score-label {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .quiz-deeper {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--code-bg);
+      border-radius: 8px;
+    }
+
+    .quiz-deeper code {
+      color: var(--accent);
+    }
+
+    .learning-timeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow-x: auto;
+      padding: 20px 0;
+      position: relative;
+    }
+
+    .timeline-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 100px;
+      flex-shrink: 0;
+      position: relative;
+      text-decoration: none;
+    }
+
+    .timeline-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 2px solid var(--border);
+      z-index: 2;
+      transition: transform 0.2s;
+    }
+
+    .timeline-item.current .timeline-dot {
+      width: 22px;
+      height: 22px;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 107, 107, 0.4);
+    }
+
+    .timeline-item.prev .timeline-dot,
+    .timeline-item.done .timeline-dot {
+      background: var(--complete);
+      border-color: var(--complete);
+    }
+
+    .timeline-item:hover .timeline-dot {
+      transform: scale(1.2);
+    }
+
+    .timeline-line {
+      width: 40px;
+      height: 2px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .timeline-line.done { background: var(--complete); }
+    .timeline-line.active { background: var(--accent); }
+
+    .timeline-label {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 100px;
+      line-height: 1.3;
+    }
+
+    .timeline-item.current .timeline-label {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .phase-progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      overflow: hidden;
+      margin: 16px 0 8px;
+    }
+
+    .phase-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      transition: width 0.5s ease;
+    }
+
+    .phase-progress-text {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .phase-complete-callout {
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      color: var(--complete);
+      text-align: center;
+      margin-top: 12px;
+      padding: 12px;
+      border: 2px dashed var(--complete);
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      display: none;
+    }
+
+    .phase-complete-callout.visible { display: block; }
+
+    .continue-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .continue-big-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      padding: 16px 40px;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      text-decoration: none;
+      border: 2px solid var(--accent);
+      box-shadow: var(--shadow-hard-lg);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .continue-big-btn:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 8px 8px 0 var(--shadow-color);
+    }
+
+    .continue-links {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .continue-link {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--border);
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .continue-link:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .continue-callout {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--code-bg);
+      padding: 14px 20px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px dashed var(--border);
+      max-width: 480px;
+    }
+
+    .continue-callout code {
+      color: var(--accent);
+    }
+
+    .panel-loading {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .panel-fallback {
+      text-align: center;
+      padding: 16px;
+    }
+
+    .panel-fallback a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--accent);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 480px) {
+      .ai-panel {
+        padding: 20px 16px;
+      }
+
+      .output-cards,
+      .code-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .learning-timeline {
+        padding: 20px 10px;
+      }
+
+      .timeline-item {
+        min-width: 70px;
+      }
+
+      .timeline-line {
+        width: 20px;
+      }
+
+      .continue-big-btn {
+        font-size: 1.1rem;
+        padding: 14px 28px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .lesson-main {
+        padding: 32px 16px 60px;
+      }
+
+      .lesson-article {
+        max-width: 100%;
+      }
+
+      .lesson-article h1 {
+        font-size: 2rem;
+      }
+
+      .lesson-article h2 {
+        font-size: 1.5rem;
+      }
+
+      .lesson-article h3 {
+        font-size: 1.2rem;
+      }
+
+      .lesson-article p,
+      .lesson-article ul li,
+      .lesson-article ol li {
+        font-size: 1.05rem;
+        line-height: 1.75;
+      }
+
+      .lesson-article pre code {
+        font-size: 0.8rem;
+        padding: 14px 12px;
+      }
+
+      .lesson-article table {
+        font-size: 0.85rem;
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .lesson-article table th,
+      .lesson-article table td {
+        padding: 8px 10px;
+        white-space: nowrap;
+      }
+
+      .lesson-article .motto {
+        font-size: 1.1rem;
+        padding: 14px 16px;
+      }
+
+      .lesson-article .drop-cap::first-letter {
+        font-size: 3em;
+      }
+
+      .ai-panels {
+        margin-top: 40px;
+        gap: 32px;
+      }
+
+      .ai-panel {
+        padding: 20px 14px;
+        border-radius: 20px 8px 20px 8px / 8px 20px 8px 20px;
+      }
+
+      .ai-panel-title {
+        font-size: 1.2rem;
+      }
+
+      .output-cards,
+      .code-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .quiz-options {
+        gap: 8px;
+      }
+
+      .quiz-option {
+        font-size: 0.9rem;
+        padding: 10px 14px;
+      }
+
+      .learning-timeline {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 8px;
+      }
+
+      .continue-big-btn {
+        font-size: 1rem;
+        padding: 12px 20px;
+      }
+
+      .continue-links {
+        gap: 8px;
+      }
+
+      .lesson-nav-bottom {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .lesson-nav-btn {
+        max-width: 100%;
+      }
+
+      .lesson-nav-btn.next {
+        text-align: left;
+      }
+
+      .lesson-progress {
+        font-size: 0.7rem;
+        padding: 6px 12px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .lesson-article h1 {
+        font-size: 1.6rem;
+      }
+
+      .lesson-main {
+        padding: 24px 10px 48px;
+      }
+
+      .ai-panel {
+        padding: 16px 10px;
+      }
+    }
+
+    @media (min-width: 1440px) {
+      .lesson-article {
+        max-width: 800px;
+      }
+
+      .lesson-sidebar {
+        width: 300px;
+        min-width: 300px;
+      }
+
+      .lesson-main {
+        margin-left: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">&#9679;</span> Solution Architect from Scratch
+      </a>
+      <nav class="header-nav">
+        <a href="index.html#phases">Phases</a>
+        <a href="catalog.html">Catalog</a>
+        <a href="glossary.html">Glossary</a>
+        <a href="https://github.com/mindwalker-ai/solution-architect-from-scratch" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="theme-icon" id="themeIcon">&#9789;</span>
+      </button>
+    </div>
+  </header>
+
+  <button class="lesson-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">&#9776;</button>
+
+  <div class="lesson-layout">
+    <aside class="lesson-sidebar" id="lessonSidebar"></aside>
+    <main class="lesson-main">
+      <div class="lesson-content" id="lessonContent">
+        <div class="lesson-loading" id="lessonLoading">
+          <div class="spinner"></div>
+          <div class="lesson-loading-text">Loading lesson...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="data.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
+      fontFamily: 'Patrick Hand, cursive'
+    });
+    window._mermaidReady = mermaid;
+  </script>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var stored = localStorage.getItem('theme');
+      if (stored) {
+        root.setAttribute('data-theme', stored);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        root.setAttribute('data-theme', 'light');
+      }
+      updateThemeIcon();
+
+      function updateThemeIcon() {
+        var icon = document.getElementById('themeIcon');
+        if (!icon) return;
+        var theme = root.getAttribute('data-theme');
+        icon.innerHTML = theme === 'light' ? '&#9728;' : '&#9789;';
+      }
+
+      var btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          var current = root.getAttribute('data-theme');
+          var next = current === 'light' ? 'dark' : 'light';
+          root.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+          updateThemeIcon();
+        });
+      }
+
+      var params = new URLSearchParams(window.location.search);
+      var lessonPath = params.get('path');
+
+      if (!lessonPath) {
+        showError('No lesson path specified', 'Add ?path=phases/01-math-foundations/01-linear-algebra-intuition to the URL.');
+        return;
+      }
+
+      var phaseMatch = lessonPath.match(/phases\/(\d+-[^/]+)/);
+      var lessonMatch = lessonPath.match(/phases\/\d+-[^/]+\/(\d+-[^/]+)/);
+      var currentPhaseSlug = phaseMatch ? phaseMatch[1] : null;
+      var currentLessonSlug = lessonMatch ? lessonMatch[1] : null;
+
+      var currentPhaseIndex = -1;
+      var currentLessonIndex = -1;
+      var flatLessons = [];
+
+      if (typeof PHASES !== 'undefined') {
+        for (var i = 0; i < PHASES.length; i++) {
+          var p = PHASES[i];
+          var pSlug = extractPhaseSlug(p, i);
+          for (var j = 0; j < p.lessons.length; j++) {
+            var l = p.lessons[j];
+            var lSlug = extractLessonSlug(l, j);
+            flatLessons.push({
+              phaseIndex: i,
+              lessonIndex: j,
+              phaseName: p.name,
+              phaseId: p.id,
+              phaseSlug: pSlug,
+              lessonName: l.name,
+              lessonSlug: lSlug,
+              status: l.status,
+              type: l.type,
+              lang: l.lang,
+              url: l.url,
+              path: 'phases/' + pSlug + '/' + lSlug,
+              isReadable: l.status === 'complete' || !!l.url
+            });
+            if (pSlug === currentPhaseSlug && lSlug === currentLessonSlug) {
+              currentPhaseIndex = i;
+              currentLessonIndex = flatLessons.length - 1;
+            }
+          }
+        }
+      }
+
+      buildSidebar();
+      initSidebarToggle();
+      initScrollProgress();
+      fetchLesson(lessonPath);
+
+      function extractPhaseSlug(phase, index) {
+        if (phase.url) {
+          var m = phase.url.match(/phases\/([^/]+)/);
+          if (m) return m[1];
+        }
+        if (phase.lessons && phase.lessons.length > 0 && phase.lessons[0].url) {
+          var m2 = phase.lessons[0].url.match(/phases\/([^/]+)/);
+          if (m2) return m2[1];
+        }
+        return String(phase.id).padStart(2, '0') + '-' + phase.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      }
+
+      function extractLessonSlug(lesson, index) {
+        if (lesson.url) {
+          var m = lesson.url.match(/phases\/[^/]+\/([^/]+)/);
+          if (m) return m[1].replace(/\/$/, '');
+        }
+        return String(index + 1).padStart(2, '0') + '-' + lesson.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      }
+
+      function buildSidebar() {
+        var sidebar = document.getElementById('lessonSidebar');
+        if (!sidebar || typeof PHASES === 'undefined') return;
+
+        var html = '';
+
+        var prevPhaseIdx = currentPhaseIndex > 0 ? currentPhaseIndex - 1 : -1;
+        var nextPhaseIdx = (currentPhaseIndex >= 0 && currentPhaseIndex < PHASES.length - 1) ? currentPhaseIndex + 1 : -1;
+
+        if (prevPhaseIdx >= 0 || nextPhaseIdx >= 0) {
+          html += '<div class="sidebar-phase-nav">';
+          if (prevPhaseIdx >= 0) {
+            var pp = PHASES[prevPhaseIdx];
+            var ppSlug = extractPhaseSlug(pp, prevPhaseIdx);
+            var ppFirstLesson = pp.lessons[0] ? extractLessonSlug(pp.lessons[0], 0) : '';
+            html += '<a href="lesson.html?path=phases/' + ppSlug + '/' + ppFirstLesson + '">&larr; Phase ' + String(pp.id).padStart(2, '0') + ': ' + escapeHtml(pp.name) + '</a>';
+          }
+          if (nextPhaseIdx >= 0) {
+            var np = PHASES[nextPhaseIdx];
+            var npSlug = extractPhaseSlug(np, nextPhaseIdx);
+            var npFirstLesson = np.lessons[0] ? extractLessonSlug(np.lessons[0], 0) : '';
+            html += '<a href="lesson.html?path=phases/' + npSlug + '/' + npFirstLesson + '">Phase ' + String(np.id).padStart(2, '0') + ': ' + escapeHtml(np.name) + ' &rarr;</a>';
+          }
+          html += '</div>';
+        }
+
+        if (currentPhaseIndex >= 0) {
+          var phase = PHASES[currentPhaseIndex];
+          html += '<div class="sidebar-phase-header">Phase ' + String(phase.id).padStart(2, '0') + ' &mdash; ' + escapeHtml(phase.name) + '</div>';
+          for (var k = 0; k < phase.lessons.length; k++) {
+            var les = phase.lessons[k];
+            var lesSlug = extractLessonSlug(les, k);
+            var pSlugCurrent = extractPhaseSlug(phase, currentPhaseIndex);
+            var isActive = lesSlug === currentLessonSlug;
+            var lesReadable = les.status === 'complete' || !!les.url;
+            if (lesReadable) {
+              html += '<a class="sidebar-lesson-link' + (isActive ? ' active' : '') + '" href="lesson.html?path=phases/' + pSlugCurrent + '/' + lesSlug + '">';
+            } else {
+              html += '<span class="sidebar-lesson-link disabled">';
+            }
+            html += '<span class="sidebar-lesson-dot ' + les.status + '"></span>';
+            html += escapeHtml(les.name);
+            html += lesReadable ? '</a>' : '</span>';
+          }
+        }
+
+        sidebar.innerHTML = html;
+      }
+
+      function initSidebarToggle() {
+        var toggle = document.getElementById('sidebarToggle');
+        var sidebar = document.getElementById('lessonSidebar');
+        if (!toggle || !sidebar) return;
+
+        toggle.addEventListener('click', function () {
+          sidebar.classList.toggle('open');
+        });
+
+        document.addEventListener('click', function (e) {
+          if (window.innerWidth <= 900 && sidebar.classList.contains('open')) {
+            if (!sidebar.contains(e.target) && e.target !== toggle) {
+              sidebar.classList.remove('open');
+            }
+          }
+        });
+      }
+
+      function initScrollProgress() {
+        var bar = document.getElementById('scrollProgress');
+        if (!bar) return;
+        window.addEventListener('scroll', function () {
+          var scrollTop = window.scrollY || document.documentElement.scrollTop;
+          var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+          bar.style.width = pct + '%';
+        }, { passive: true });
+      }
+
+      function fetchLesson(path) {
+        var rawUrl = 'https://raw.githubusercontent.com/mindwalker-ai/solution-architect-from-scratch/main/' + path + '/docs/en.md';
+        fetch(rawUrl)
+          .then(function (res) {
+            if (!res.ok) throw new Error('Not found');
+            return res.text();
+          })
+          .then(function (md) {
+            renderLesson(md);
+          })
+          .catch(function () {
+            showError('Lesson not found', 'Could not fetch the lesson at <code>' + escapeHtml(path) + '</code>. It may not have been written yet.');
+          });
+      }
+
+      function showError(title, msg) {
+        var el = document.getElementById('lessonContent');
+        el.innerHTML = '<div class="lesson-error"><h2>' + title + '</h2><p>' + msg + '</p><a href="index.html" class="btn btn-primary">Back to Home</a></div>';
+      }
+
+      function renderLesson(md) {
+        var el = document.getElementById('lessonContent');
+        var html = parseMd(md);
+        html += '<div class="ai-panels" id="aiPanels"></div>';
+        html = addBottomNav(html);
+        el.innerHTML = '<article class="lesson-article">' + html + '</article>';
+
+        document.title = extractTitle(md) + ' - Solution Architect From Scratch';
+
+        initCodeCopy();
+        renderMermaidBlocks();
+        renderAIPanels();
+
+        document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+          link.addEventListener('click', function (e) {
+            var target = document.querySelector(link.getAttribute('href'));
+            if (target) {
+              e.preventDefault();
+              target.scrollIntoView({ behavior: 'smooth' });
+            }
+          });
+        });
+      }
+
+      function extractTitle(md) {
+        var m = md.match(/^# (.+)/m);
+        return m ? m[1] : 'Lesson';
+      }
+
+      function parseMd(md) {
+        var lines = md.split('\n');
+        var out = '';
+        var inCodeBlock = false;
+        var codeLang = '';
+        var codeLines = [];
+        var inTable = false;
+        var tableRows = [];
+        var inList = false;
+        var listType = '';
+        var listItems = [];
+        var firstBlockquoteDone = false;
+        var firstParaAfterMottoDone = false;
+        var inBlockquote = false;
+        var blockquoteLines = [];
+        var mermaidBlocks = 0;
+
+        function flushList() {
+          if (!inList) return '';
+          inList = false;
+          var tag = listType === 'ol' ? 'ol' : 'ul';
+          var h = '<' + tag + '>';
+          for (var li = 0; li < listItems.length; li++) {
+            h += '<li>' + inlineFormat(listItems[li]) + '</li>';
+          }
+          h += '</' + tag + '>';
+          listItems = [];
+          return h;
+        }
+
+        function flushTable() {
+          if (!inTable) return '';
+          inTable = false;
+          if (tableRows.length < 2) return '';
+          var headers = tableRows[0];
+          var isKeyTerms = false;
+          for (var th = 0; th < headers.length; th++) {
+            if (headers[th].toLowerCase().indexOf('what people say') >= 0 || headers[th].toLowerCase().indexOf('people say') >= 0) {
+              isKeyTerms = true;
+            }
+          }
+          var h = '<div class="table-wrap' + (isKeyTerms ? ' key-terms-table' : '') + '"><table><thead><tr>';
+          for (var ti = 0; ti < headers.length; ti++) {
+            h += '<th>' + inlineFormat(headers[ti].trim()) + '</th>';
+          }
+          h += '</tr></thead><tbody>';
+          for (var ri = 2; ri < tableRows.length; ri++) {
+            var cells = tableRows[ri];
+            h += '<tr>';
+            for (var ci = 0; ci < cells.length; ci++) {
+              var cls = '';
+              if (isKeyTerms) {
+                var headerLower = (headers[ci] || '').toLowerCase();
+                if (headerLower.indexOf('say') >= 0) cls = ' class="col-says"';
+              }
+              h += '<td' + cls + '>' + inlineFormat((cells[ci] || '').trim()) + '</td>';
+            }
+            h += '</tr>';
+          }
+          h += '</tbody></table></div>';
+          tableRows = [];
+          return h;
+        }
+
+        function flushBlockquote() {
+          if (!inBlockquote) return '';
+          inBlockquote = false;
+          var text = blockquoteLines.join(' ');
+          blockquoteLines = [];
+          if (!firstBlockquoteDone) {
+            firstBlockquoteDone = true;
+            return '<div class="motto">' + inlineFormat(text) + '</div>';
+          }
+          return '<blockquote><p>' + inlineFormat(text) + '</p></blockquote>';
+        }
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+
+          if (inCodeBlock) {
+            if (line.match(/^```\s*$/)) {
+              inCodeBlock = false;
+              var raw = codeLines.join('\n');
+              if (codeLang === 'mermaid') {
+                mermaidBlocks++;
+                out += '<div class="mermaid-container"><pre class="mermaid" id="mermaid-' + mermaidBlocks + '">' + escapeHtml(raw) + '</pre></div>';
+              } else {
+                out += renderCodeBlock(raw, codeLang);
+              }
+              codeLines = [];
+              codeLang = '';
+            } else {
+              codeLines.push(line);
+            }
+            continue;
+          }
+
+          var codeStart = line.match(/^```(\w*)/);
+          if (codeStart) {
+            out += flushList();
+            out += flushTable();
+            out += flushBlockquote();
+            inCodeBlock = true;
+            codeLang = codeStart[1] || '';
+            codeLines = [];
+            continue;
+          }
+
+          if (line.match(/^\|.+\|/)) {
+            out += flushList();
+            out += flushBlockquote();
+            if (!inTable) inTable = true;
+            var cells = line.split('|').slice(1, -1);
+            tableRows.push(cells.map(function (c) { return c.trim(); }));
+            continue;
+          } else if (inTable) {
+            out += flushTable();
+          }
+
+          if (line.match(/^>\s/)) {
+            out += flushList();
+            out += flushTable();
+            if (!inBlockquote) inBlockquote = true;
+            blockquoteLines.push(line.replace(/^>\s?/, ''));
+            continue;
+          } else if (inBlockquote) {
+            out += flushBlockquote();
+          }
+
+          var h1 = line.match(/^# (.+)/);
+          if (h1) {
+            out += flushList();
+            var slug = slugify(h1[1]);
+            out += '<h1 id="' + slug + '">' + inlineFormat(h1[1]) + '</h1>';
+            continue;
+          }
+
+          var h2 = line.match(/^## (.+)/);
+          if (h2) {
+            out += flushList();
+            var slug2 = slugify(h2[1]);
+            var sectionClass = '';
+            var txt = h2[1].toLowerCase();
+            if (txt.indexOf('build it') >= 0 || txt.indexOf('build ') === 0) sectionClass = ' section-build';
+            else if (txt.indexOf('use it') >= 0 || txt.indexOf('use ') === 0) sectionClass = ' section-use';
+            else if (txt.indexOf('ship it') >= 0 || txt.indexOf('ship ') === 0) sectionClass = ' section-ship';
+            out += '<h2 id="' + slug2 + '" class="' + sectionClass + '">' + inlineFormat(h2[1]) + '</h2>';
+            continue;
+          }
+
+          var h3 = line.match(/^### (.+)/);
+          if (h3) {
+            out += flushList();
+            var slug3 = slugify(h3[1]);
+            out += '<h3 id="' + slug3 + '">' + inlineFormat(h3[1]) + '</h3>';
+            continue;
+          }
+
+          if (line.match(/^---+$/)) {
+            out += flushList();
+            out += '<hr>';
+            continue;
+          }
+
+          var ulMatch = line.match(/^[-*]\s+(.+)/);
+          if (ulMatch) {
+            out += flushTable();
+            out += flushBlockquote();
+            if (!inList || listType !== 'ul') {
+              out += flushList();
+              inList = true;
+              listType = 'ul';
+            }
+            listItems.push(ulMatch[1]);
+            continue;
+          }
+
+          var olMatch = line.match(/^\d+\.\s+(.+)/);
+          if (olMatch) {
+            out += flushTable();
+            out += flushBlockquote();
+            if (!inList || listType !== 'ol') {
+              out += flushList();
+              inList = true;
+              listType = 'ol';
+            }
+            listItems.push(olMatch[1]);
+            continue;
+          }
+
+          if (inList) {
+            out += flushList();
+          }
+
+          if (line.trim() === '') {
+            continue;
+          }
+
+          var paraClass = '';
+          if (firstBlockquoteDone && !firstParaAfterMottoDone) {
+            var isMetaLine = line.match(/^\*\*[^*]+\*\*\s*:/);
+            if (!isMetaLine) {
+              paraClass = ' class="drop-cap"';
+              firstParaAfterMottoDone = true;
+            }
+          }
+
+          var metaMatch = line.match(/^\*\*([^*]+)\*\*:\s*(.+)/);
+          if (metaMatch && !firstParaAfterMottoDone) {
+            out += '<div class="lesson-meta-tag"><strong>' + escapeHtml(metaMatch[1]) + ':</strong> ' + inlineFormat(metaMatch[2]) + '</div>';
+            continue;
+          }
+
+          out += '<p' + paraClass + '>' + inlineFormat(line) + '</p>';
+        }
+
+        out += flushList();
+        out += flushTable();
+        out += flushBlockquote();
+
+        return out;
+      }
+
+      function inlineFormat(text) {
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, label, href) {
+          if (/^https?:\/\/|^mailto:/i.test(href)) {
+            return '<a href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
+          }
+          return label;
+        });
+        return text;
+      }
+
+      function slugify(text) {
+        return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      }
+
+      function renderCodeBlock(code, lang) {
+        var highlighted = highlightSyntax(escapeHtml(code), lang);
+        var langLabel = lang ? '<span class="code-lang">' + escapeHtml(lang) + '</span>' : '';
+        return '<pre>' + langLabel + '<button class="code-copy" data-code="' + escapeAttr(code) + '">Copy</button><code>' + highlighted + '</code></pre>';
+      }
+
+      function highlightSyntax(code, lang) {
+        var keywords, commentPattern;
+
+        if (lang === 'python' || lang === 'py') {
+          keywords = /\b(def|class|return|if|elif|else|for|while|in|import|from|as|with|try|except|finally|raise|yield|lambda|not|and|or|is|None|True|False|print|self|pass|break|continue|assert|global)\b/g;
+          commentPattern = /(#[^\n]*)/g;
+        } else if (lang === 'julia') {
+          keywords = /\b(function|end|if|elseif|else|for|while|in|using|import|return|struct|mutable|abstract|type|module|export|let|const|begin|do|try|catch|finally|throw|true|false|nothing|println)\b/g;
+          commentPattern = /(#[^\n]*)/g;
+        } else if (lang === 'javascript' || lang === 'js' || lang === 'typescript' || lang === 'ts') {
+          keywords = /\b(function|const|let|var|return|if|else|for|while|class|new|this|import|export|from|async|await|try|catch|throw|typeof|instanceof|true|false|null|undefined|console)\b/g;
+          commentPattern = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g;
+        } else if (lang === 'rust') {
+          keywords = /\b(fn|let|mut|struct|enum|impl|trait|pub|use|mod|self|super|crate|return|if|else|for|while|loop|match|async|await|true|false|None|Some|Ok|Err|println)\b/g;
+          commentPattern = /(\/\/[^\n]*)/g;
+        } else {
+          keywords = /\b(function|def|class|return|if|else|for|while|import|from|const|let|var|true|false|null|None|print|println)\b/g;
+          commentPattern = /(#[^\n]*|\/\/[^\n]*)/g;
+        }
+
+        var tokens = [];
+        function stash(match) {
+          var id = '\x00TOK' + tokens.length + '\x00';
+          tokens.push(match);
+          return id;
+        }
+
+        code = code.replace(commentPattern, function (m) { return stash('<span class="syn-comment">' + m + '</span>'); });
+        code = code.replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;|&#39;(?:[^&]|&(?!#39;))*?&#39;|&quot;&quot;&quot;[\s\S]*?&quot;&quot;&quot;)/g, function (m) { return stash('<span class="syn-string">' + m + '</span>'); });
+        code = code.replace(/"([^"]*?)"/g, function (m) { return stash('<span class="syn-string">' + m + '</span>'); });
+
+        code = code.replace(keywords, '<span class="syn-keyword">$1</span>');
+        code = code.replace(/\b(\d+\.?\d*)\b/g, '<span class="syn-number">$1</span>');
+
+        for (var ti = 0; ti < tokens.length; ti++) {
+          code = code.replace('\x00TOK' + ti + '\x00', tokens[ti]);
+        }
+        return code;
+      }
+
+      function initCodeCopy() {
+        document.querySelectorAll('.code-copy').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var code = btn.getAttribute('data-code');
+            navigator.clipboard.writeText(code).then(function () {
+              btn.textContent = 'Copied!';
+              setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+            });
+          });
+        });
+      }
+
+      function renderMermaidBlocks() {
+        var check = setInterval(function () {
+          if (!window._mermaidReady) return;
+          clearInterval(check);
+          var blocks = document.querySelectorAll('.mermaid');
+          blocks.forEach(function (block) {
+            var id = block.id;
+            var def = block.textContent;
+            window._mermaidReady.render(id + '-svg', def).then(function (result) {
+              block.innerHTML = result.svg;
+            }).catch(function () {
+              block.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">Diagram could not be rendered.</p>';
+            });
+          });
+        }, 100);
+        setTimeout(function () { clearInterval(check); }, 10000);
+      }
+
+      function addBottomNav(html) {
+        if (currentLessonIndex < 0) return html;
+
+        var prev = null;
+        for (var pi = currentLessonIndex - 1; pi >= 0; pi--) {
+          if (flatLessons[pi].isReadable) { prev = flatLessons[pi]; break; }
+        }
+        var next = null;
+        for (var ni = currentLessonIndex + 1; ni < flatLessons.length; ni++) {
+          if (flatLessons[ni].isReadable) { next = flatLessons[ni]; break; }
+        }
+
+        var nav = '<div class="lesson-nav-bottom">';
+        if (prev) {
+          nav += '<a class="lesson-nav-btn prev" href="lesson.html?path=' + prev.path + '">';
+          nav += '<span class="nav-label">&larr; Previous</span>';
+          nav += '<span class="nav-title">' + escapeHtml(prev.lessonName) + '</span>';
+          nav += '</a>';
+        } else {
+          nav += '<div></div>';
+        }
+        if (next) {
+          nav += '<a class="lesson-nav-btn next" href="lesson.html?path=' + next.path + '">';
+          nav += '<span class="nav-label">Next &rarr;</span>';
+          nav += '<span class="nav-title">' + escapeHtml(next.lessonName) + '</span>';
+          nav += '</a>';
+        }
+        nav += '</div>';
+        return html + nav;
+      }
+
+      function renderAIPanels() {
+        var container = document.getElementById('aiPanels');
+        if (!container || !lessonPath) return;
+
+        renderOutputsPanel(container);
+        renderCodePanel(container);
+        renderQuizPanel(container);
+        renderLearningPathPanel(container);
+        renderContinuePanel(container);
+      }
+
+      var ghApiCache = {};
+
+      function ghApiFetch(apiPath, cb) {
+        if (ghApiCache[apiPath]) {
+          cb(null, ghApiCache[apiPath]);
+          return;
+        }
+        fetch('https://api.github.com/repos/mindwalker-ai/solution-architect-from-scratch/contents/' + apiPath, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        }).then(function (res) {
+          if (!res.ok) throw new Error(res.status);
+          return res.json();
+        }).then(function (data) {
+          ghApiCache[apiPath] = data;
+          cb(null, data);
+        }).catch(function (err) {
+          cb(err, null);
+        });
+      }
+
+      function classifyOutput(name) {
+        var lower = name.toLowerCase();
+        if (lower.indexOf('prompt') >= 0) return 'prompt';
+        if (lower.indexOf('skill') >= 0) return 'skill';
+        return 'other';
+      }
+
+      function langIcon(filename) {
+        var ext = filename.split('.').pop().toLowerCase();
+        var map = { py: '\u{1F40D}', python: '\u{1F40D}', ts: '\u{1F535}', js: '\u{1F7E1}', rust: '\u{1F9E0}', rs: '\u{1F9E0}', jl: '\u{1F7E2}', julia: '\u{1F7E2}', sh: '\u{1F4BB}', bash: '\u{1F4BB}' };
+        return map[ext] || '\u{1F4C4}';
+      }
+
+      function langCommand(filename) {
+        var ext = filename.split('.').pop().toLowerCase();
+        if (ext === 'py') return 'python';
+        if (ext === 'ts') return 'npx tsx';
+        if (ext === 'js') return 'node';
+        if (ext === 'rs') return 'cargo run --';
+        if (ext === 'jl') return 'julia';
+        if (ext === 'sh') return 'bash';
+        return 'run';
+      }
+
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        return (bytes / 1024).toFixed(1) + ' KB';
+      }
+
+      function extractFrontmatterDesc(content) {
+        var match = content.match(/^---[\s\S]*?description:\s*(.+?)[\r\n]/m);
+        if (match) return match[1].replace(/^["']|["']$/g, '').trim();
+        var firstLine = content.split('\n').find(function (l) { return l.trim() && !l.match(/^[#-]/) && !l.match(/^---/); });
+        return firstLine ? firstLine.trim().substring(0, 120) : '';
+      }
+
+      function renderOutputsPanel(container) {
+        var panel = document.createElement('div');
+        panel.className = 'ai-panel';
+        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon coral">\u{1F4E6}</div><div class="ai-panel-title">What This Lesson Ships</div></div><div class="ai-panel-subtitle">Prompts, skills, and artifacts you can use right now</div><div id="outputsContent" class="panel-loading">Loading outputs...</div>';
+        container.appendChild(panel);
+
+        ghApiFetch(lessonPath + '/outputs', function (err, data) {
+          var el = document.getElementById('outputsContent');
+          if (err || !data || !Array.isArray(data) || data.length === 0) {
+            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/mindwalker-ai/solution-architect-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">View lesson on GitHub</a></div>';
+            return;
+          }
+
+          var html = '<div class="output-cards">';
+          data.forEach(function (file, idx) {
+            var type = classifyOutput(file.name);
+            var badgeClass = type;
+            var badgeText = type === 'prompt' ? 'Prompt' : type === 'skill' ? 'Skill' : 'Output';
+            var installId = 'install-hint-' + idx;
+            var installHint = '';
+            if (type === 'prompt') {
+              installHint = 'Copy this prompt into Claude Code, ChatGPT, or any AI assistant';
+            } else if (type === 'skill') {
+              var skillName = file.name.replace(/\.md$/, '').replace(/^skill-/, '');
+              installHint = 'npx skillkit install ' + skillName;
+            }
+
+            html += '<div class="output-card">';
+            html += '<div class="output-badge ' + badgeClass + '">' + badgeText + '</div>';
+            html += '<div class="output-card-name">' + escapeHtml(file.name) + '</div>';
+            html += '<div class="output-desc" id="desc-' + idx + '">Loading description...</div>';
+            html += '<div class="output-actions">';
+            html += '<a class="output-btn" href="' + file.html_url + '" target="_blank" rel="noopener">View on GitHub</a>';
+            if (installHint) {
+              html += '<button class="output-btn" onclick="var h=document.getElementById(\'' + installId + '\');h.classList.toggle(\'visible\')">Install</button>';
+            }
+            html += '</div>';
+            if (installHint) {
+              html += '<div class="output-install-hint" id="' + installId + '">' + escapeHtml(installHint) + '</div>';
+            }
+            html += '</div>';
+
+            fetch(file.download_url).then(function (r) { return r.text(); }).then(function (content) {
+              var descEl = document.getElementById('desc-' + idx);
+              if (descEl) {
+                var desc = extractFrontmatterDesc(content);
+                descEl.textContent = desc || file.name;
+              }
+            }).catch(function () {
+              var descEl = document.getElementById('desc-' + idx);
+              if (descEl) descEl.textContent = file.name;
+            });
+          });
+          html += '</div>';
+          el.innerHTML = html;
+        });
+      }
+
+      function renderCodePanel(container) {
+        var panel = document.createElement('div');
+        panel.className = 'ai-panel';
+        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon blue">\u{1F4BB}</div><div class="ai-panel-title">Run the Code</div></div><div class="ai-panel-subtitle">Executable files from this lesson</div><div id="codeContent" class="panel-loading">Loading code files...</div>';
+        container.appendChild(panel);
+
+        ghApiFetch(lessonPath + '/code', function (err, data) {
+          var el = document.getElementById('codeContent');
+          if (err || !data || !Array.isArray(data) || data.length === 0) {
+            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/mindwalker-ai/solution-architect-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">View lesson on GitHub</a></div>';
+            return;
+          }
+
+          var html = '<div class="code-cards">';
+          data.forEach(function (file) {
+            var icon = langIcon(file.name);
+            var cmd = langCommand(file.name);
+            var runCmd = cmd + ' ' + lessonPath + '/code/' + file.name;
+            html += '<div class="code-card">';
+            html += '<div class="code-card-header"><span class="code-lang-icon">' + icon + '</span><span class="code-card-name">' + escapeHtml(file.name) + '</span></div>';
+            html += '<div class="code-card-size">' + formatSize(file.size) + '</div>';
+            html += '<div class="code-card-run">' + escapeHtml(runCmd) + '</div>';
+            html += '<div class="code-card-actions">';
+            html += '<a class="code-card-btn" href="' + file.html_url + '" target="_blank" rel="noopener">View on GitHub</a>';
+            html += '<button class="code-card-btn code-card-copy" data-command="' + escapeAttr(runCmd) + '">Copy command</button>';
+            html += '</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+          el.innerHTML = html;
+          el.querySelectorAll('.code-card-copy').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var command = btn.getAttribute('data-command');
+              navigator.clipboard.writeText(command).then(function () {
+                btn.textContent = 'Copied!';
+                setTimeout(function () { btn.textContent = 'Copy command'; }, 1500);
+              });
+            });
+          });
+        });
+      }
+
+      var QUIZ_BANK = {
+        '01-linux-essentials': [
+          { q: 'What is systemd primarily responsible for on a modern Linux system?', opts: ['Compiling the kernel', 'Initializing the system and managing services as PID 1', 'Providing a windowing GUI', 'Encrypting disk partitions'], answer: 1, explain: 'systemd is the init system (PID 1) that boots the system and manages/supervises services (units).' },
+          { q: 'Which command shows the status of a systemd-managed service?', opts: ['systemctl status <service>', 'ps aux <service>', 'journalctl -f', 'iptables -L <service>'], answer: 0, explain: '`systemctl status` reports whether a unit is active, its recent logs, and its PID.' },
+          { q: 'What does chmod 644 grant on a file?', opts: ['Owner: read+write; group and others: read only', 'Owner: execute only', 'Everyone: full read/write/execute', 'No one can access the file'], answer: 0, explain: '644 = rw-r--r--: the owner gets read/write (6), group and others get read-only (4).' }
+        ],
+        '02-linux-networking': [
+          { q: 'What Linux kernel feature does OpenStack Neutron rely on to isolate tenant networks at the OS level?', opts: ['Network namespaces', 'Cgroups', 'SELinux', 'AppArmor'], answer: 0, explain: 'Network namespaces (netns) give each router/DHCP agent its own isolated routing table, interfaces, and firewall rules.' },
+          { q: 'Which command lists network namespaces on a Linux host?', opts: ['ip netns list', 'ifconfig -a', 'nmcli device', 'route -n'], answer: 0, explain: '`ip netns list` shows every named network namespace on the host, including the ones Neutron creates per router/DHCP agent.' },
+          { q: 'What replaced iptables as the modern Linux packet-filtering framework?', opts: ['nftables', 'firewalld', 'ufw', 'tcpdump'], answer: 0, explain: 'nftables is the successor to iptables/ip6tables/arptables/ebtables, unifying them under one syntax and kernel API.' }
+        ],
+        '03-storage': [
+          { q: 'What does LVM\'s "volume group" sit between?', opts: ['Physical volumes and logical volumes', 'The kernel and the bootloader', 'RAID and iSCSI only', 'Partitions and the filesystem cache'], answer: 0, explain: 'LVM stacks: physical volumes (PVs) -> volume group (VG) -> logical volumes (LVs), which are then formatted with a filesystem.' },
+          { q: 'What RAID level mirrors data across two disks for redundancy, with no parity math?', opts: ['RAID 1', 'RAID 0', 'RAID 5', 'RAID 6'], answer: 0, explain: 'RAID 1 mirrors data across disks for full redundancy, at the cost of only 50% usable capacity.' },
+          { q: 'What does iSCSI allow a server to do?', opts: ['Access block storage over a standard IP network using the SCSI protocol', 'Encrypt filesystems at rest', 'Provide object storage buckets', 'Compress volumes automatically'], answer: 0, explain: 'iSCSI encapsulates SCSI commands in TCP/IP so a host can mount a remote block device as if it were local disk — the same transport many Cinder backends use.' }
+        ],
+        '04-virtualization': [
+          { q: 'What is the role of KVM in the virtualization stack?', opts: ['A kernel module that turns Linux into a hypervisor using hardware virtualization extensions', 'A GUI for managing VMs', 'A network switch', 'A container runtime'], answer: 0, explain: 'KVM (Kernel-based Virtual Machine) is a Linux kernel module that exposes Intel VT-x/AMD-V so the kernel can act as a hypervisor.' },
+          { q: 'What is QEMU\'s role when paired with KVM?', opts: ['It emulates hardware devices (disk, NIC, BIOS) for the guest while KVM accelerates CPU execution', 'It replaces the Linux kernel', 'It is a monitoring dashboard', 'It provides object storage'], answer: 0, explain: 'QEMU handles device emulation and I/O; KVM lets QEMU-launched guest instructions run near-natively on the host CPU.' },
+          { q: 'What does libvirt provide?', opts: ['A standard API/toolkit for managing hypervisors like KVM/QEMU, independent of the underlying virtualization technology', 'A block storage protocol', 'A DNS server', 'A container image format'], answer: 0, explain: 'libvirt abstracts virtualization platforms behind one API/CLI (virsh) — exactly what Nova\'s libvirt driver talks to.' }
+        ],
+        '05-cloud-computing': [
+          { q: 'What distinguishes IaaS from PaaS?', opts: ['IaaS gives you raw compute/network/storage; PaaS abstracts away the OS/runtime so you focus on the application', 'IaaS is always cheaper', 'PaaS requires managing physical hardware', 'There is no meaningful difference'], answer: 0, explain: 'IaaS (what OpenStack provides) hands you VMs, networks, and volumes; PaaS layers on top to manage runtimes/deployment for you.' },
+          { q: 'What is "elasticity" in cloud computing?', opts: ['The ability to automatically scale resources up or down to match demand', 'A type of encryption', 'A billing model only', 'A physical property of servers'], answer: 0, explain: 'Elasticity means dynamically provisioning and de-provisioning resources in response to load.' },
+          { q: 'What is multi-tenancy?', opts: ['Multiple customers/projects sharing the same physical infrastructure while remaining logically isolated', 'One customer per physical server', 'A backup strategy', 'A networking protocol'], answer: 0, explain: 'Multi-tenancy lets OpenStack projects share hardware while Keystone/Neutron/etc. enforce isolation between them.' }
+        ],
+        '06-manual-vm-deployment': [
+          { q: 'In a manual libvirt VM deployment, what is cloud-init used for?', opts: ['Injecting first-boot configuration (hostname, SSH keys, users) into a generic cloud image', 'Compiling the guest kernel', 'Managing RAID arrays', 'Encrypting the VM disk'], answer: 0, explain: 'cloud-init reads metadata/user-data on first boot to configure a stock cloud image without needing a custom image per VM.' },
+          { q: 'Why use a pre-built cloud image instead of running a full OS installer for each VM?', opts: ['It lets you provision VMs quickly and consistently by customizing a generic image at boot instead of installing from scratch each time', 'Cloud images cannot run on KVM', 'It removes the need for networking', 'It is required by libvirt'], answer: 0, explain: 'Cloud images are minimal, cloud-init-ready templates — the same pattern Glance/Nova use to launch instances instantly instead of installing an OS per boot.' },
+          { q: 'What command directly defines and starts a libvirt-managed VM from an XML domain definition?', opts: ['virsh define + virsh start', 'systemctl start vm', 'qemu-img convert', 'ip link add'], answer: 0, explain: 'virsh is libvirt\'s CLI; `virsh define` registers a domain XML and `virsh start` boots it — this manual workflow is exactly what Nova automates.' }
+        ],
+        '01-history-and-ecosystem': [
+          { q: 'OpenStack originated in 2010 as a joint project between which two organizations?', opts: ['Rackspace and NASA', 'Google and Amazon', 'Red Hat and IBM', 'Microsoft and VMware'], answer: 0, explain: 'OpenStack began as a merger of Rackspace\'s object storage code (which became Swift) and NASA\'s compute code (which became Nova).' },
+          { q: 'What governs OpenStack\'s development and releases today?', opts: ['The OpenInfra Foundation, coordinating an open-source community with a defined release cadence', 'A single vendor with proprietary control', 'No formal governance', 'The Linux Foundation exclusively'], answer: 0, explain: 'OpenStack is governed by the OpenInfra Foundation, with elected technical committees and biannual coordinated releases.' },
+          { q: 'What is a "project" in the OpenStack ecosystem sense (e.g. Nova, Neutron)?', opts: ['An independently developed service with its own team and repo, integrated via defined APIs into the platform', 'A customer tenant', 'A single VM', 'A billing account'], answer: 0, explain: 'Each OpenStack service is a separate project with its own governance, released together but developed independently.' }
+        ],
+        '02-architecture': [
+          { q: 'What is the role of a message queue (e.g. RabbitMQ) in OpenStack\'s architecture?', opts: ['Asynchronous RPC between the API/scheduler and compute agents', 'Storing VM images', 'Serving the REST API', 'Encrypting tenant traffic'], answer: 0, explain: 'Services like Nova use AMQP (RabbitMQ) for RPC between the API/conductor/scheduler and agents running on compute nodes.' },
+          { q: 'What does the Nova scheduler decide?', opts: ['Which compute host a new instance should be placed on, based on filters and weights', 'Which image format to use', 'The tenant\'s billing rate', 'The DNS name of a VM'], answer: 0, explain: 'nova-scheduler applies filters (e.g. RAM, CPU, AZ) and weighers to rank hosts, then picks the best one for a new instance.' },
+          { q: 'Why do most OpenStack services use a relational database (e.g. MySQL/MariaDB)?', opts: ['To persist state like instances, networks, and volumes that must survive service restarts', 'To render the Horizon dashboard UI', 'To store VM disk images', 'To route network packets'], answer: 0, explain: 'Each service keeps its own DB schema for its resource state, separate from image storage or packet forwarding.' }
+        ],
+        '03-components-overview': [
+          { q: 'Which OpenStack service is responsible for authentication and authorization across all other services?', opts: ['Keystone', 'Glance', 'Cinder', 'Heat'], answer: 0, explain: 'Keystone issues tokens and maintains the service catalog that every other component checks before acting.' },
+          { q: 'Which pairing correctly matches a service to its primary function?', opts: ['Neutron: networking; Cinder: block storage', 'Nova: object storage; Swift: compute', 'Glance: networking; Heat: identity', 'Horizon: block storage; Keystone: dashboard'], answer: 0, explain: 'Neutron provides networking-as-a-service; Cinder provides block storage volumes. The other pairings are swapped.' },
+          { q: 'What does Heat provide in the OpenStack ecosystem?', opts: ['Orchestration — deploying stacks of resources from a template', 'Object storage', 'Bare-metal provisioning', 'Identity federation'], answer: 0, explain: 'Heat is OpenStack\'s orchestration engine, reading HOT/CFN templates to stand up multi-resource stacks declaratively.' }
+        ],
+        '04-request-flow': [
+          { q: 'When a user runs `openstack server create`, which service authenticates the request first?', opts: ['Keystone, by validating the token before Nova processes the request', 'Neutron', 'Glance', 'Cinder'], answer: 0, explain: 'Every API call first passes through Keystone middleware to validate the auth token before the target service acts on it.' },
+          { q: 'During instance boot, which service supplies the disk image Nova uses for the root disk?', opts: ['Glance', 'Swift', 'Barbican', 'Heat'], answer: 0, explain: 'Nova calls Glance to fetch the referenced image, caching it locally on the compute node.' },
+          { q: 'What must happen before Nova can attach a new instance\'s virtual NIC to a tenant network?', opts: ['Neutron must create/validate the port and network resources for that instance', 'Cinder must attach a volume', 'Heat must create a stack', 'Swift must store the image'], answer: 0, explain: 'Nova calls Neutron\'s API to allocate a port on the requested network before the instance\'s vNIC can be wired up.' }
+        ],
+        '05-devstack-sandbox': [
+          { q: 'What is DevStack primarily used for?', opts: ['Standing up a full OpenStack environment from source for development and testing, not production', 'Running production clouds at scale', 'Replacing Kolla-Ansible in production', 'Monitoring OpenStack clusters'], answer: 0, explain: 'DevStack is a set of scripts that installs OpenStack from git source, intended for developers/testers on a single disposable host.' },
+          { q: 'Where does DevStack read its configuration from before running stack.sh?', opts: ['A local.conf file', 'A YAML Helm chart', 'Kolla globals.yml', '/etc/nova/nova.conf only'], answer: 0, explain: 'DevStack is customized via local.conf (enabled services, passwords, network settings) before invoking stack.sh.' },
+          { q: 'Why is DevStack unsuitable for production deployments?', opts: ['It installs services from source with minimal hardening, aimed at fast iteration rather than reliability or security', 'It cannot run Nova at all', 'It requires bare metal only', 'It does not support Keystone'], answer: 0, explain: 'DevStack trades HA, security hardening, and stability for a fast, disposable, reproducible dev/test environment.' }
+        ],
+        '01-keystone': [
+          { q: 'What does Keystone issue to a client after successful authentication?', opts: ['A token that is presented to other OpenStack services to prove identity and authorization', 'A block storage volume', 'A VM instance', 'A network namespace'], answer: 0, explain: 'Keystone returns a scoped token (e.g. a Fernet token) that other services validate before honoring API calls.' },
+          { q: 'What is a "project" (formerly "tenant") in Keystone\'s identity model?', opts: ['A container that groups resources and grants role-based access to users', 'A physical compute host', 'A VM image', 'A network subnet'], answer: 0, explain: 'Projects scope resource ownership and quotas; users get roles within a project to control what they can do there.' },
+          { q: 'What does RBAC in Keystone determine?', opts: ['Which actions a user can perform based on the roles assigned to them', 'Which hypervisor a VM runs on', 'The disk format of an image', 'The MTU of a network'], answer: 0, explain: 'Role-Based Access Control maps roles (e.g. admin, member) to policy rules that gate specific API actions.' }
+        ],
+        '02-glance': [
+          { q: 'What is Glance\'s primary responsibility?', opts: ['Storing and serving virtual machine disk images and their metadata', 'Managing block storage volumes', 'Providing DNS resolution', 'Orchestrating multi-resource stacks'], answer: 0, explain: 'Glance catalogs images (qcow2, raw, etc.) with metadata like disk/container format and makes them available for Nova to boot from.' },
+          { q: 'Which image status indicates a Glance image is fully uploaded and ready to boot?', opts: ['active', 'queued', 'saving', 'deactivated'], answer: 0, explain: 'Glance images move queued -> saving -> active as data uploads complete; only active images can be used to launch instances.' },
+          { q: 'Where does Glance typically store the actual image bytes in a production deployment?', opts: ['A backend store such as Swift or Ceph (RBD), configured via the Glance store driver', 'Directly inside the Keystone database', 'On the Horizon web server only', 'Inside the Neutron network namespace'], answer: 0, explain: 'Glance itself is a catalog/API; the bytes live in a configured backend (file, Swift, Ceph RBD, etc.).' }
+        ],
+        '03-nova': [
+          { q: 'What is the role of nova-compute?', opts: ['The agent running on each hypervisor host that manages instance lifecycle via a virt driver (e.g. libvirt)', 'The REST API endpoint for all OpenStack services', 'The tenant network router', 'The block storage backend driver'], answer: 0, explain: 'nova-compute runs on every compute node and talks to the local hypervisor (via libvirt for KVM) to create/manage instances.' },
+          { q: 'What does the Nova scheduler use filters and weighers for?', opts: ['To narrow down and then rank candidate hosts for placing a new instance', 'To assign floating IPs', 'To format disk images', 'To manage RabbitMQ queues'], answer: 0, explain: 'Filters eliminate hosts that cannot satisfy the request; weighers then rank the remaining hosts to pick the best fit.' },
+          { q: 'What is an instance\'s "flavor" in Nova?', opts: ['A predefined set of compute resources (vCPU, RAM, disk) that a VM is sized from', 'The guest operating system', 'The image disk format', 'A network security rule'], answer: 0, explain: 'Flavors (e.g. m1.small) define vCPU count, RAM, and root disk size that Nova allocates when booting an instance.' }
+        ],
+        '04-neutron': [
+          { q: 'What abstraction does Neutron use to represent a virtual switch a VM connects to?', opts: ['A network, with ports representing individual virtual NIC attachments', 'A flavor', 'An image', 'A Keystone role'], answer: 0, explain: 'A Neutron "network" is a virtual L2 broadcast domain; a "port" attaches a single vNIC to that network.' },
+          { q: 'What is the purpose of a Neutron router?', opts: ['To provide L3 connectivity between tenant subnets and external networks, often via NAT for floating IPs', 'To store VM images', 'To schedule instances onto hosts', 'To manage Keystone tokens'], answer: 0, explain: 'Neutron routers (implemented via network namespaces) route between subnets and perform SNAT/DNAT for floating IP connectivity.' },
+          { q: 'What is a "floating IP" in Neutron?', opts: ['A publicly routable IP dynamically associated with an instance\'s private, fixed IP for external access', 'The DHCP-assigned internal address of a VM', 'A DNS record', 'A MAC address pool'], answer: 0, explain: 'Floating IPs are allocated from an external network and NATed to an instance\'s fixed IP, giving it reachability from outside.' }
+        ],
+        '05-cinder': [
+          { q: 'What does Cinder provide to Nova instances?', opts: ['Persistent block storage volumes that can be attached/detached like a virtual disk', 'Object storage buckets', 'DNS records', 'Virtual switches'], answer: 0, explain: 'Cinder manages block volumes independent of any instance\'s lifecycle — data persists after the instance is deleted.' },
+          { q: 'What is a Cinder volume snapshot?', opts: ['A point-in-time, read-only copy of a volume\'s data used for backup or cloning', 'A live replica kept in sync continuously', 'A network security group', 'A Nova flavor'], answer: 0, explain: 'Snapshots capture volume state at a moment in time and can be used to create new volumes or restore data.' },
+          { q: 'What determines which storage backend (e.g. LVM, Ceph, NFS) actually stores a Cinder volume\'s data?', opts: ['The configured Cinder volume driver/backend for the volume\'s type', 'The Nova scheduler', 'The Glance image format', 'The Keystone endpoint catalog'], answer: 0, explain: 'Cinder is a pluggable driver framework; the volume type maps to a backend (LVM/iSCSI, Ceph RBD, NFS, etc.).' }
+        ],
+        '06-swift': [
+          { q: 'What storage model does Swift implement?', opts: ['Object storage, where data is stored as objects in containers accessed via a REST API', 'Block storage with iSCSI', 'A relational database', 'A network file system with POSIX semantics'], answer: 0, explain: 'Swift stores immutable objects inside containers within accounts, addressed by REST calls — no POSIX filesystem semantics.' },
+          { q: 'How does Swift achieve durability without RAID?', opts: ['By replicating (or erasure coding) each object across multiple storage nodes/zones', 'By using a single powerful storage array', 'By storing everything in RAM', 'By relying on Cinder snapshots'], answer: 0, explain: 'Swift\'s ring maps objects to multiple devices across zones/regions, replicating (default 3x) or erasure-coding data for durability.' },
+          { q: 'What is the Swift "ring"?', opts: ['A data structure mapping object/container/account names to the physical devices that store their replicas', 'A network topology diagram', 'A Keystone role hierarchy', 'A Nova scheduling algorithm'], answer: 0, explain: 'The ring is built offline and consistently hashes names to determine which storage devices hold each replica.' }
+        ],
+        '07-horizon': [
+          { q: 'What is Horizon?', opts: ['The official OpenStack web-based dashboard for managing resources through a GUI', 'A CLI tool', 'A monitoring agent', 'A block storage driver'], answer: 0, explain: 'Horizon is a Django-based web UI that calls the same OpenStack APIs as the CLI/SDK, just through a browser.' },
+          { q: 'What does Horizon use to actually perform actions like creating an instance?', opts: ['The same REST APIs (Nova, Neutron, Glance, etc.) that the CLI and SDK use', 'Direct database writes to each service', 'SSH into the compute node', 'A separate proprietary protocol'], answer: 0, explain: 'Horizon is a client like any other — it calls the public REST APIs with the logged-in user\'s Keystone token.' },
+          { q: 'Why might an operator still need the CLI/SDK even with Horizon available?', opts: ['Automation, scripting, and advanced/bulk operations are impractical through a point-and-click UI', 'Horizon does not support Keystone authentication', 'The CLI is the only way to create instances', 'Horizon cannot display Neutron networks'], answer: 0, explain: 'Horizon is great for ad hoc/human use, but automation, CI/CD, and bulk operations are far more practical scripted via CLI/SDK.' }
+        ],
+        '01-single-node': [
+          { q: 'What does an "All-In-One" (AIO) OpenStack deployment mean?', opts: ['All control-plane and compute services run on a single host', 'Every tenant shares one VM', 'Only Keystone is installed', 'Storage and compute are physically separated'], answer: 0, explain: 'AIO packs API, scheduler, DB, MQ, and compute agents onto one node — useful for testing/demos, not production HA.' },
+          { q: 'What is MicroStack built on?', opts: ['Snap packages providing a minimal, single-command OpenStack install', 'Kubernetes Helm charts exclusively', 'Bare RPM installs with manual config', 'DevStack scripts'], answer: 0, explain: 'MicroStack packages OpenStack as snaps for a fast, opinionated single-node (or small multi-node) deployment.' },
+          { q: 'What is Kolla\'s core deployment unit?', opts: ['Docker/OCI containers, one per OpenStack service, deployed via Ansible', 'Bare-metal RPM packages', 'Virtual machines per service', 'Snap packages'], answer: 0, explain: 'Kolla builds each OpenStack service into a container image; Kolla-Ansible then deploys and configures those containers.' }
+        ],
+        '02-kolla-ansible-fundamentals': [
+          { q: 'What is the primary file where Kolla-Ansible deployment-wide settings (enabled services, VIP) are defined?', opts: ['globals.yml', 'nova.conf', 'inventory.ini only', 'docker-compose.yml'], answer: 0, explain: 'globals.yml holds top-level toggles (enable_neutron, network interfaces, kolla_internal_vip_address, etc.) that drive the whole deploy.' },
+          { q: 'What does the Kolla-Ansible inventory file define?', opts: ['Which hosts play which roles (control, network, compute, storage)', 'The Nova flavor list', 'The Glance image catalog', 'Keystone service catalog endpoints'], answer: 0, explain: 'The Ansible inventory groups (e.g. [control], [compute], [network], [storage]) map hosts to Kolla deployment roles.' },
+          { q: 'What is the typical Kolla-Ansible workflow after configuring globals.yml and passwords.yml?', opts: ['kolla-ansible bootstrap-servers, then prechecks, then deploy', 'kolla-ansible destroy directly', 'Manually docker run every container', 'Editing nova.conf by hand on every host'], answer: 0, explain: 'The standard flow prepares hosts, validates prerequisites, then deploys and configures containers across the inventory.' }
+        ],
+        '03-multi-node-topology': [
+          { q: 'What distinguishes a "controller" node from a "compute" node in a typical topology?', opts: ['Controllers run API/scheduler/DB/MQ services; compute nodes run the hypervisor and nova-compute agent', 'Controllers only store logs', 'Compute nodes run Keystone exclusively', 'There is no functional difference'], answer: 0, explain: 'Splitting roles lets control-plane services scale/HA independently from the hypervisor capacity that runs tenant workloads.' },
+          { q: 'Why is a dedicated network node (or role) common in multi-node topologies?', opts: ['To centralize L3 routing, DHCP, and NAT for tenant networks separate from compute capacity', 'Because Nova requires it for scheduling', 'To store block volumes', 'Because Keystone cannot run on compute nodes'], answer: 0, explain: 'Isolating Neutron\'s L3/DHCP/metadata agents onto network nodes avoids contention with compute workloads.' },
+          { q: 'Why do production topologies typically separate a storage network from the management/API network?', opts: ['To avoid storage traffic (e.g. iSCSI/Ceph) contending with control-plane and tenant traffic for bandwidth', 'Because Neutron forbids shared networks', 'Because Keystone tokens require a private network', 'It is only a security requirement, not a performance one'], answer: 0, explain: 'Storage I/O can be bandwidth-heavy; a dedicated storage network prevents it from starving API calls or tenant traffic.' }
+        ],
+        '04-deploy-multi-node-cluster': [
+          { q: 'Before running kolla-ansible deploy across a cluster, what should kolla-ansible prechecks verify?', opts: ['That hosts meet requirements (connectivity, package versions, free ports/disk) before deployment', 'That all tenant VMs are running', 'That Glance images are converted to raw format', 'That Horizon is reachable externally'], answer: 0, explain: 'Prechecks catch environment problems before a costly deploy attempt.' },
+          { q: 'What must be consistent across all nodes for Kolla-Ansible\'s deployment to succeed?', opts: ['SSH key-based access from the deployment host and consistent package/Docker versions', 'Every node must run a GUI', 'Every node must have a public IP', 'Every node must run the same hypervisor type as compute'], answer: 0, explain: 'Ansible needs passwordless SSH to every managed node, and mismatched Docker/OS versions are a common source of deploy failures.' },
+          { q: 'After a successful deploy, what verifies core services are actually functional?', opts: ['Running post-deploy checks / openstack CLI commands like listing services and creating a test instance', 'Checking that docker ps shows containers as "Up"', 'Reading globals.yml again', 'Restarting all containers'], answer: 0, explain: 'Container "Up" status does not guarantee a service registered correctly with Keystone or can serve requests — functional smoke tests do.' }
+        ],
+        '05-upgrades': [
+          { q: 'What is the recommended OpenStack upgrade pattern between named releases?', opts: ['Upgrade one release at a time in sequence (N -> N+1 -> N+2), not skipping releases', 'Jump directly to the latest release regardless of gap', 'Only upgrade Nova and leave other services behind', 'Reinstall from scratch every time'], answer: 0, explain: 'OpenStack officially supports sequential release upgrades; skipping releases is possible but far riskier and less tested.' },
+          { q: 'Why must database schema migrations typically run before restarting services on a new release?', opts: ['New service code often expects the updated schema to already be in place', 'Migrations are optional and can run anytime', 'Schema migrations replace the need for backups', 'Only Keystone requires migrations'], answer: 0, explain: 'Running the service\'s db-sync before cutover avoids services crashing against a stale schema.' },
+          { q: 'Why take a full backup (DB + config) immediately before starting an upgrade?', opts: ['To allow rollback if the upgrade fails partway through', 'Backups are required by Keystone policy', 'It replaces the need for prechecks', 'It speeds up the upgrade process'], answer: 0, explain: 'Upgrades are one of the highest-risk operations; a fresh backup is the safety net if migrations or restarts go wrong.' }
+        ],
+        '01-monitoring': [
+          { q: 'What is Prometheus\'s core data model?', opts: ['Time-series metrics scraped (pulled) from exporters at regular intervals', 'Log lines pushed to a central index', 'Distributed traces', 'Relational tables of VM metadata'], answer: 0, explain: 'Prometheus pulls metrics over HTTP from targets/exporters and stores them as labeled time series.' },
+          { q: 'What is a Prometheus "exporter" for OpenStack monitoring?', opts: ['A process that exposes metrics in Prometheus format for Prometheus to scrape', 'A tool that ships logs to Loki', 'A Grafana plugin for dashboards only', 'A Keystone authentication backend'], answer: 0, explain: 'Exporters translate a system\'s internal state (host metrics, OpenStack API metrics) into the Prometheus exposition format.' },
+          { q: 'What is Grafana used for in this stack?', opts: ['Visualizing metrics (e.g. from Prometheus) as dashboards and alerts', 'Collecting metrics directly from hosts', 'Storing OpenStack Keystone tokens', 'Running Ansible playbooks'], answer: 0, explain: 'Grafana is a visualization/alerting layer that queries data sources like Prometheus and renders dashboards.' }
+        ],
+        '02-logging': [
+          { q: 'What is Fluent Bit\'s role in this logging stack?', opts: ['A lightweight log collector/forwarder that ships logs from hosts/containers to a central store', 'A time-series database', 'A dashboarding tool', 'An OpenStack service itself'], answer: 0, explain: 'Fluent Bit tails logs and forwards them, typically to Loki, with minimal resource overhead.' },
+          { q: 'How does Loki differ from a traditional full-text log index like Elasticsearch?', opts: ['Loki indexes only metadata/labels and stores log content compressed, querying more like Prometheus label lookups', 'Loki cannot store logs at all', 'Loki requires no labels', 'Loki is a metrics-only system with no log storage'], answer: 0, explain: 'Loki intentionally avoids full-text indexing of log bodies to stay cheaper/lighter, relying on labels for narrowing queries.' },
+          { q: 'Why centralize logs from all OpenStack services into one system?', opts: ['To correlate events across services during troubleshooting without SSHing to every node', 'Because local logs are automatically deleted after 1 hour', 'Because Kolla containers do not write logs at all', 'It is required for Keystone token validation'], answer: 0, explain: 'A failed VM boot might touch Nova, Neutron, and Keystone logs across multiple hosts — central aggregation makes correlation practical.' }
+        ],
+        '03-backup-and-restore': [
+          { q: 'What are the two broad categories of data that must be backed up in an OpenStack deployment?', opts: ['Service databases/configuration and the actual tenant data (volumes, images, objects)', 'Only Nova instance RAM snapshots', 'Only Horizon session cookies', 'Only the Keystone token cache'], answer: 0, explain: 'Losing the databases (Nova/Neutron/Cinder/Keystone state) is as damaging as losing tenant volumes/images/objects.' },
+          { q: 'Why is a consistent point-in-time database backup important for OpenStack service databases?', opts: ['Inconsistent snapshots of a live relational DB can corrupt referential integrity between related tables', 'Databases never need backups if Ceph is used', 'File copies are always faster and equally safe', 'Only Cinder\'s database matters'], answer: 0, explain: 'Consistent backups ensure related rows across tables are captured at the same point, avoiding corruption.' },
+          { q: 'What does a Cinder volume backup (as opposed to a snapshot) typically provide?', opts: ['A copy stored in a separate backend, often incremental, meant to survive loss of the original volume backend', 'An in-place snapshot dependent on the same storage pool', 'A copy of the Nova flavor list', 'A network configuration dump'], answer: 0, explain: 'Cinder backups are designed to be restorable even if the original volume/backend is destroyed, unlike snapshots.' }
+        ],
+        '04-scaling': [
+          { q: 'What is horizontal scaling of OpenStack\'s control plane?', opts: ['Adding more controller nodes running API/scheduler services behind a load balancer', 'Adding more RAM to a single controller', 'Increasing a single VM\'s flavor size', 'Adding more Cinder volumes'], answer: 0, explain: 'Horizontal scaling adds more instances of stateless services behind HAProxy rather than growing one box.' },
+          { q: 'Why must Nova scheduler decisions be re-evaluated as more compute nodes are added?', opts: ['Placement decisions depend on current host capacity/utilization, which changes as the fleet grows', 'New compute nodes are automatically excluded from scheduling', 'Scaling requires manually editing every VM', 'Scheduler filters are fixed at install time and never change'], answer: 0, explain: 'The scheduler queries current resource usage (via Placement) so adding hosts changes the pool of viable candidates.' },
+          { q: 'What is a common bottleneck when scaling out RabbitMQ-backed RPC in a large deployment?', opts: ['Message queue throughput/connection count under high agent and API load', 'Running out of Glance image storage', 'DNS resolution for tenant VMs', 'Horizon session limits'], answer: 0, explain: 'As agents and API workers multiply, RabbitMQ connection/queue overhead can become a scaling limit.' }
+        ],
+        '05-troubleshooting': [
+          { q: 'When an instance is stuck in BUILD state, which log is typically checked first?', opts: ['nova-compute log on the target hypervisor', 'The Horizon web server access log only', 'The Keystone token cache', 'The Glance image checksum log'], answer: 0, explain: 'nova-compute on the host attempting the build records the actual failure reason.' },
+          { q: 'What OpenStack CLI command shows the detailed fault for a failed instance?', opts: ['openstack server show <instance>', 'openstack network list', 'openstack volume type list', 'openstack image save'], answer: 0, explain: '`server show` surfaces the fault message/traceback Nova recorded when the operation failed.' },
+          { q: 'If a VM has no network connectivity, which service\'s agents/logs should be checked first?', opts: ['Neutron (L2/L3/DHCP agents) on the relevant node', 'Glance', 'Cinder', 'Barbican'], answer: 0, explain: 'Neutron agents implement the actual dataplane; their logs show port binding, DHCP, or routing failures.' }
+        ],
+        '01-high-availability': [
+          { q: 'What replication model does Galera Cluster use for MySQL/MariaDB?', opts: ['Synchronous multi-master replication, certifying writes across all nodes before committing', 'Asynchronous single-master replication only', 'No replication; manual copy scripts', 'Log-shipping to a cold standby only'], answer: 0, explain: 'Galera provides synchronous multi-master replication — any node can accept writes, kept consistent via certification-based conflict detection.' },
+          { q: 'What does Keepalived provide for a highly available control plane?', opts: ['A virtual IP (VIP) that fails over between nodes using VRRP', 'Database replication', 'Message queue clustering', 'Instance live migration'], answer: 0, explain: 'Keepalived implements VRRP to move a shared VIP to a surviving node if the active one fails.' },
+          { q: 'What is HAProxy\'s role in front of clustered OpenStack API services?', opts: ['Load balancing and health-checking requests across multiple API backend instances', 'Storing tenant volume data', 'Replicating the database', 'Running the Nova scheduler'], answer: 0, explain: 'HAProxy distributes incoming API traffic across healthy backend instances and removes unhealthy ones from rotation.' }
+        ],
+        '02-ceph-integration': [
+          { q: 'What storage interface does Ceph expose that Cinder and Nova typically use for block storage?', opts: ['RBD (RADOS Block Device)', 'NFS exclusively', 'iSCSI exclusively', 'SMB/CIFS'], answer: 0, explain: 'Cinder\'s Ceph driver and Nova\'s libvirt driver both talk to Ceph via RBD.' },
+          { q: 'Why is Ceph a popular unified backend for Glance, Cinder, and Nova simultaneously?', opts: ['It lets images, volumes, and instance disks share the same cluster, enabling fast copy-on-write cloning between them', 'It only supports object storage', 'It requires a separate cluster per service', 'It cannot support snapshots'], answer: 0, explain: 'Booting a volume from an image on the same Ceph pool can use copy-on-write clones instead of full data copies.' },
+          { q: 'What is a Ceph "placement group" (PG) used for?', opts: ['Grouping objects and mapping them to a set of OSDs for distribution and replication', 'Defining a Nova flavor', 'A Keystone role assignment', 'A Neutron security group'], answer: 0, explain: 'PGs are the unit CRUSH uses to distribute and replicate data across OSDs without a central per-object lookup.' }
+        ],
+        '03-advanced-networking': [
+          { q: 'What does Open vSwitch (OVS) provide as Neutron\'s traditional ML2 mechanism driver?', opts: ['A software virtual switch implementing L2 forwarding, VLANs/tunnels, and flow rules', 'A hardware-only ASIC switch', 'A DNS resolver', 'A block storage backend'], answer: 0, explain: 'OVS implements virtual bridges/flows that realize Neutron\'s networks, ports, and security groups in the dataplane.' },
+          { q: 'What is OVN\'s key architectural difference from the traditional OVS ML2 + L3 agent model?', opts: ['OVN uses a distributed, declarative control plane to compute flows, removing per-node imperative agent logic', 'OVN requires a completely different physical NIC', 'OVN only works with Nova, not Neutron', 'OVN removes the need for Open vSwitch entirely'], answer: 0, explain: 'OVN still uses OVS in the dataplane but replaces per-agent logic with a centralized logical model compiled to OpenFlow.' },
+          { q: 'What does VXLAN use to carry tenant L2 traffic across compute nodes over an IP underlay?', opts: ['UDP-based tunneling with a VXLAN Network Identifier (VNI)', 'Native untagged VLAN trunking only', 'IPsec tunnels exclusively', 'Fibre Channel'], answer: 0, explain: 'VXLAN tunnels frames over IP using a 24-bit VNI, letting Neutron scale past the ~4094 VLAN limit.' }
+        ],
+        '04-security-hardening': [
+          { q: 'What does enabling TLS on OpenStack API endpoints protect against?', opts: ['Eavesdropping and tampering with API traffic (including tokens/credentials) in transit', 'SQL injection in the Nova database', 'DDoS attacks on compute nodes', 'Malicious VM images'], answer: 0, explain: 'TLS encrypts and authenticates the endpoint connection, protecting tokens and request/response bodies from network interception.' },
+          { q: 'What service does OpenStack use to securely store secrets like encryption keys and certificates?', opts: ['Barbican', 'Swift', 'Heat', 'Ironic'], answer: 0, explain: 'Barbican is the OpenStack key manager, providing access-controlled secret storage (e.g. Cinder volume encryption keys, TLS certs).' },
+          { q: 'What is the principle behind fine-grained RBAC policies in OpenStack services?', opts: ['Restricting specific API actions to specific roles/scopes rather than an all-or-nothing admin/member split', 'Giving every authenticated user admin access by default', 'Replacing Keystone authentication entirely', 'Only applying to Horizon, not the APIs'], answer: 0, explain: 'Custom policy rules let operators grant least-privilege access instead of coarse admin/non-admin roles.' }
+        ],
+        '05-performance-tuning': [
+          { q: 'What does CPU pinning (vCPU-to-pCPU affinity) in Nova aim to improve?', opts: ['Reducing latency/jitter for performance-sensitive workloads by avoiding scheduling contention and cache thrashing', 'Reducing the size of the Glance image', 'Increasing the number of tenants per project', 'Improving Keystone token generation speed'], answer: 0, explain: 'Pinning vCPUs to dedicated physical cores avoids the host scheduler moving vCPU threads around, which matters for latency-sensitive workloads.' },
+          { q: 'Why does NUMA-aware instance placement matter for performance?', opts: ['Accessing memory attached to a different NUMA node than the running vCPU adds significant latency', 'NUMA only affects disk I/O, not CPU/memory', 'NUMA awareness is only relevant for single-socket systems', 'It has no measurable effect on modern hardware'], answer: 0, explain: 'Cross-NUMA-node memory access is slower than local access; Nova\'s NUMA topology filter keeps vCPUs and memory co-located when possible.' },
+          { q: 'What is a typical first step when diagnosing poor disk I/O for Cinder-backed instances?', opts: ['Check the storage backend\'s I/O metrics/latency and the volume\'s configured type', 'Increase the instance\'s vCPU count', 'Restart Keystone', 'Add more Neutron networks'], answer: 0, explain: 'Disk I/O issues usually trace back to the storage backend or volume/driver configuration, not compute or identity services.' }
+        ],
+        '01-openstack-sdk-cli': [
+          { q: 'What authenticates the openstack CLI and SDK clients to the cloud by default?', opts: ['A clouds.yaml file (or environment variables) containing Keystone credentials/auth URL', 'A hardcoded token in the CLI binary', 'SSH keys only', 'A Kubernetes kubeconfig file'], answer: 0, explain: 'clouds.yaml (or OS_* env vars) defines the auth URL, project, and credentials the CLI/SDK uses to request a Keystone token.' },
+          { q: 'Why prefer the OpenStack SDK over shelling out to the CLI in automation scripts?', opts: ['The SDK gives typed, structured objects and programmatic error handling instead of parsing CLI text output', 'The CLI cannot authenticate at all', 'The SDK does not require credentials', 'The CLI is deprecated and nonfunctional'], answer: 0, explain: 'The SDK returns native Python objects and raises exceptions on errors, which is more robust for scripts than parsing CLI stdout.' },
+          { q: 'What does the -f json output format flag let you do with the OpenStack CLI?', opts: ['Produce machine-parseable output for scripting instead of a human-readable table', 'Change which cloud you authenticate against', 'Enable debug logging', 'Switch API microversions'], answer: 0, explain: 'Format flags control how results are rendered; JSON/YAML output is intended for scripts and pipelines.' }
+        ],
+        '02-infrastructure-as-code': [
+          { q: 'What is the key difference between Heat and Terraform for provisioning OpenStack resources?', opts: ['Heat is OpenStack-native and server-side; Terraform is a client-side, multi-cloud tool driven by a provider plugin', 'Heat only supports AWS', 'Terraform cannot manage OpenStack at all', 'They are functionally identical with no differences'], answer: 0, explain: 'Heat runs as an OpenStack service tracking stacks server-side; Terraform runs locally/in CI and tracks state itself.' },
+          { q: 'What does Terraform\'s state file represent?', opts: ['The last known mapping between your configuration and the real infrastructure resources it manages', 'The Heat template itself', 'A Keystone token cache', 'A Nova flavor definition'], answer: 0, explain: 'Terraform diffs your desired configuration against the state file to compute what to create/change/destroy.' },
+          { q: 'What does a Heat template define through its resources and properties?', opts: ['A "stack": a set of interrelated resources managed and updated together', 'A Keystone role assignment only', 'A single VM with no other resources', 'A Cinder volume type'], answer: 0, explain: 'A HOT template\'s resources section declares everything in the stack that Heat creates/updates/deletes as a unit.' }
+        ],
+        '03-magnum-kuryr': [
+          { q: 'What does Magnum provide on top of OpenStack?', opts: ['Container Orchestration Engines (like Kubernetes clusters) as a managed OpenStack resource', 'Bare-metal provisioning', 'Object storage replication', 'DNS-as-a-service'], answer: 0, explain: 'Magnum uses Heat under the hood to provision and manage COE clusters as first-class OpenStack resources.' },
+          { q: 'What problem does Kuryr solve?', opts: ['It bridges container networking (e.g. CNI) to Neutron, so containers can get real Neutron ports/networks', 'It replaces Keystone authentication for containers', 'It provides container image storage', 'It schedules containers onto compute nodes like Nova does VMs'], answer: 0, explain: 'Kuryr implements the CNI/libnetwork interfaces backed by Neutron, giving pods real Neutron-managed networking.' },
+          { q: 'Why choose Magnum-provisioned Kubernetes over bare-metal Kubernetes outside OpenStack?', opts: ['To provision/manage clusters through the same OpenStack APIs, quotas, and tenancy model already used for VMs', 'Because Kubernetes cannot run on virtual machines', 'Because Magnum removes the need for a Kubernetes API entirely', 'Because bare-metal Kubernetes is always faster to deploy'], answer: 0, explain: 'Magnum lets cluster lifecycle reuse existing OpenStack tenancy, quotas, and networking.' }
+        ],
+        '04-kubernetes-openstack': [
+          { q: 'What OpenStack service does the Kubernetes cloud-controller-manager integrate with to provision LoadBalancer Services?', opts: ['Octavia (load-balancer-as-a-service)', 'Barbican', 'Swift', 'Ironic'], answer: 0, explain: 'The OpenStack cloud provider maps Service type=LoadBalancer to Octavia load balancers.' },
+          { q: 'What does the Cinder CSI driver enable for Kubernetes workloads on OpenStack?', opts: ['Dynamic provisioning and attachment of Cinder volumes as Kubernetes PersistentVolumes', 'Automatic creation of Neutron networks', 'Keystone token refresh for pods', 'Image conversion for Glance'], answer: 0, explain: 'The Container Storage Interface driver lets PersistentVolumeClaims trigger real Cinder volume operations.' },
+          { q: 'Why might Kubernetes nodes run as Nova instances rather than directly on bare metal?', opts: ['To gain elastic provisioning, live migration, and OpenStack-level multi-tenancy for the node fleet', 'Because Kubernetes cannot run in VMs', 'Because bare-metal nodes cannot join a Kubernetes cluster', 'Because Nova instances have no network connectivity'], answer: 0, explain: 'Running K8s nodes as Nova VMs reuses OpenStack\'s provisioning, scaling, and isolation (Ironic is the alternative when bare metal is specifically desired).' }
+        ],
+        '05-ceph-deep-dive': [
+          { q: 'What algorithm does Ceph use to place data without a central metadata lookup per object?', opts: ['CRUSH (Controlled Replication Under Scalable Hashing)', 'A central SQL index of every object location', 'DNS round robin', 'Round-robin across all OSDs with no hashing'], answer: 0, explain: 'CRUSH computes object placement deterministically from a cluster map and object ID.' },
+          { q: 'What is the role of a Ceph Monitor (MON)?', opts: ['Maintaining the cluster map and cluster quorum/consensus', 'Storing object data directly', 'Running the RBD block device driver', 'Serving the S3-compatible API'], answer: 0, explain: 'MONs hold the authoritative cluster maps and use consensus to keep them consistent; OSDs actually store data.' },
+          { q: 'What is Ceph erasure coding used for, as an alternative to full replication?', opts: ['Providing durability with less storage overhead than 3x replication, at the cost of more compute on reconstruction', 'Encrypting data at rest', 'Compressing objects before replication', 'Load-balancing client connections'], answer: 0, explain: 'Erasure coding splits data into chunks plus parity, trading CPU/latency for lower capacity overhead than triple replication.' }
+        ],
+        '06-nfv-sriov-dpdk': [
+          { q: 'What does SR-IOV allow a single physical NIC to do?', opts: ['Present multiple virtual functions (VFs) that can be passed through directly to VMs, bypassing the host\'s virtual switch', 'Encrypt all outbound traffic automatically', 'Replace the need for any physical NIC', 'Provide object storage to instances'], answer: 0, explain: 'SR-IOV VFs give a VM near-native NIC performance by skipping the software switch and kernel networking stack entirely.' },
+          { q: 'What is DPDK\'s core performance technique?', opts: ['Bypassing the kernel network stack with user-space poll-mode drivers to eliminate interrupt overhead', 'Adding more kernel interrupts for finer-grained scheduling', 'Increasing MTU size only', 'Running network processing inside a container sandbox'], answer: 0, explain: 'DPDK drivers poll the NIC in user space instead of relying on interrupts, cutting per-packet processing latency.' },
+          { q: 'Why is GPU passthrough (PCI passthrough) used for certain OpenStack workloads?', opts: ['To give an instance direct, near-native access to a physical GPU for compute-intensive workloads', 'To improve Keystone token issuance speed', 'To replace Neutron\'s L3 agent', 'To provide object storage acceleration'], answer: 0, explain: 'PCI passthrough assigns a physical device directly to a guest, avoiding hypervisor-mediated overhead.' }
+        ],
+        '07-ironic-bare-metal': [
+          { q: 'What does Ironic provision, in contrast to Nova\'s typical libvirt/KVM driver?', opts: ['Physical (bare-metal) servers, not virtual machines', 'Only containers', 'Only object storage', 'Only network namespaces'], answer: 0, explain: 'Ironic is OpenStack\'s bare-metal-as-a-service project, automating provisioning of physical hosts through the Nova API workflow.' },
+          { q: 'What mechanism does Ironic commonly use to network-boot a bare-metal node for deployment?', opts: ['PXE boot combined with the Ironic Python Agent (IPA) to write the image to disk', 'SSH into a running OS to install packages', 'A pre-existing hypervisor snapshot', 'A Cinder volume attach only'], answer: 0, explain: 'Ironic PXE-boots a deploy ramdisk running IPA, which streams the target image directly onto the node\'s disk.' },
+          { q: 'How does Nova interact with Ironic to provision a bare-metal instance?', opts: ['Nova uses the ironic virt driver, treating each bare-metal node as a single-tenant instance scheduled like a VM', 'Nova has no interaction with Ironic; they are entirely separate APIs', 'Ironic replaces Keystone for bare-metal auth', 'Nova converts bare metal into a Cinder volume'], answer: 0, explain: 'The ironic virt driver lets the same Nova API/scheduler workflow provision physical nodes, one-to-one instead of oversubscribed.' }
+        ],
+        '08-edge-multiregion-federation': [
+          { q: 'What problem does OpenStack Keystone federation solve?', opts: ['Allowing users to authenticate via an external identity provider (e.g. SAML/OIDC) across one or more OpenStack clouds', 'Replicating Cinder volumes between regions', 'Load-balancing Nova compute nodes', 'Compressing Glance images'], answer: 0, explain: 'Federation lets Keystone trust an external IdP, so users authenticate once and get mapped into roles/projects across trusting clouds.' },
+          { q: 'In a multi-region deployment, what is typically shared across regions rather than duplicated?', opts: ['Keystone identity (often), while Nova/Neutron/Cinder resources remain region-scoped', 'Every Nova instance', 'Every Neutron port', 'Nothing; regions are entirely independent'], answer: 0, explain: 'A common pattern shares Keystone across regions for one identity, while compute/network/storage stay region-local.' },
+          { q: 'What is a defining characteristic of an "edge" OpenStack deployment vs. a central region?', opts: ['Small-footprint compute/storage placed close to users or data sources, often with higher-latency links back to a central control plane', 'It always has more capacity than the central region', 'It cannot run Nova at all', 'It requires no networking configuration'], answer: 0, explain: 'Edge sites trade centralized scale for proximity/latency, which drives architectures tolerant of WAN links back to the core.' }
+        ],
+        '01-production-private-cloud': [
+          { q: 'Which combination of concerns must a genuinely "production-ready" private cloud address together?', opts: ['High availability, security hardening, monitoring/logging, backup/restore, and performance — not just a working install', 'Only whether Nova can boot a single VM', 'Only network throughput', 'Only cost of hardware'], answer: 0, explain: 'Production readiness is the union of everything covered across Deployment, Operations, Production Architecture, and Advanced phases.' },
+          { q: 'Why does a capstone project typically call for documenting the design rationale, not just working code?', opts: ['To capture the tradeoffs behind choices (e.g. Ceph vs. LVM, OVS vs. OVN) so the reasoning survives beyond the person who made it', 'Documentation is optional once the cluster deploys successfully', 'ADRs replace the need for monitoring', 'Only Heat templates need documentation'], answer: 0, explain: 'Future operators need to know why a tradeoff was made, since the constraints that justified a choice are easy to forget.' },
+          { q: 'What best demonstrates a private cloud build is genuinely production-ready, versus just functional?', opts: ['Deliberately inducing failures (node loss, service crash) and confirming HA/backup procedures recover without manual heroics', 'Successfully booting one instance one time', 'Passing kolla-ansible prechecks only', 'Having Horizon accessible over HTTPS'], answer: 0, explain: 'Production readiness is proven under failure, not the happy path — chaos/failure testing against the HA and backup design is the real test.' }
+        ]
+      };
+
+      var QUIZ_BANK_DEFAULT = [
+        { q: 'What is the core teaching approach of this course?', opts: ['Watch slides describing OpenStack services', 'Build a small version of each service yourself, then operate the real thing the way production teams do', 'Memorize the CLI reference', 'Only read the official install guide'], answer: 1, explain: 'The course has you build toy versions (a mini Keystone, a mini Nova scheduler, a mini Swift ring) before operating the real, production-grade services.' },
+        { q: 'How is this course structured?', opts: ['One long lesson with no phases', '8 phases moving from prerequisites through core services, deployment, operations, production architecture, advanced topics, to a capstone', 'Random order chosen by the student', 'Only hands-on labs with no conceptual material'], answer: 1, explain: 'The phases progress from OS/network/storage/virtualization fundamentals up to a full production-grade private cloud capstone.' },
+        { q: 'What does most lessons in this course produce, beyond understanding?', opts: ['Nothing reusable', 'A reusable artifact such as an Ansible role, a Terraform module, a runbook, or a Claude Code skill', 'A certificate only', 'A grade on a test'], answer: 1, explain: 'Lessons are hands-on and most ship something reusable that can be applied to a real deployment.' }
+      ];
+      function getQuizQuestions() {
+        if (currentLessonSlug && QUIZ_BANK[currentLessonSlug]) {
+          return QUIZ_BANK[currentLessonSlug];
+        }
+        return QUIZ_BANK_DEFAULT;
+      }
+
+      function renderQuizPanel(container) {
+        var questions = getQuizQuestions();
+        var panel = document.createElement('div');
+        panel.className = 'ai-panel';
+
+        var phase = '';
+        if (currentLessonIndex >= 0) {
+          var fl = flatLessons[currentLessonIndex];
+          phase = fl.phaseSlug || '';
+        }
+
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon green">\u{1F9E0}</div><div class="ai-panel-title">Test Your Understanding</div></div>';
+        html += '<div class="ai-panel-subtitle">Did you get it?</div>';
+        html += '<div class="quiz-container" id="quizContainer">';
+
+        var letters = ['A', 'B', 'C', 'D'];
+        questions.forEach(function (q, qi) {
+          html += '<div class="quiz-question" id="quiz-q-' + qi + '">';
+          html += '<div class="quiz-question-num">Question ' + (qi + 1) + ' of ' + questions.length + '</div>';
+          html += '<div class="quiz-question-text">' + escapeHtml(q.q) + '</div>';
+          html += '<div class="quiz-options">';
+          q.opts.forEach(function (opt, oi) {
+            html += '<button class="quiz-option" data-qi="' + qi + '" data-oi="' + oi + '" onclick="handleQuizAnswer(' + qi + ',' + oi + ')">';
+            html += '<span class="opt-letter">' + letters[oi] + '</span>';
+            html += '<span>' + escapeHtml(opt) + '</span>';
+            html += '</button>';
+          });
+          html += '</div>';
+          html += '<div class="quiz-explanation" id="quiz-explain-' + qi + '">' + escapeHtml(q.explain) + '</div>';
+          html += '</div>';
+        });
+
+        html += '<div class="quiz-score" id="quizScore"><div class="quiz-score-number" id="quizScoreNum">0/' + questions.length + '</div><div class="quiz-score-label">Complete all questions to see your score</div></div>';
+        html += '<div class="quiz-deeper">Want a deeper quiz? Run <code>/check-understanding ' + escapeHtml(phase) + '</code> in Claude Code</div>';
+        html += '</div>';
+
+        panel.innerHTML = html;
+        container.appendChild(panel);
+
+        window._quizData = questions;
+        window._quizAnswered = 0;
+        window._quizCorrect = 0;
+      }
+
+      window.handleQuizAnswer = function (qi, oi) {
+        var questions = window._quizData;
+        if (!questions) return;
+
+        var qEl = document.getElementById('quiz-q-' + qi);
+        if (!qEl) return;
+        var opts = qEl.querySelectorAll('.quiz-option');
+        if (opts[0].classList.contains('disabled')) return;
+
+        var correct = questions[qi].answer;
+        opts.forEach(function (opt, i) {
+          opt.classList.add('disabled');
+          if (i === oi) {
+            opt.classList.add('selected');
+            opt.classList.add(i === correct ? 'correct' : 'wrong');
+          }
+          if (i === correct) {
+            opt.classList.add('is-answer');
+          }
+        });
+
+        var explain = document.getElementById('quiz-explain-' + qi);
+        if (explain) explain.classList.add('visible');
+
+        window._quizAnswered++;
+        if (oi === correct) window._quizCorrect++;
+
+        if (window._quizAnswered === questions.length) {
+          var scoreEl = document.getElementById('quizScore');
+          var scoreNum = document.getElementById('quizScoreNum');
+          if (scoreEl && scoreNum) {
+            scoreNum.textContent = window._quizCorrect + '/' + questions.length;
+            scoreEl.querySelector('.quiz-score-label').textContent =
+              window._quizCorrect === questions.length ? 'Perfect score!' :
+              window._quizCorrect >= 2 ? 'Great work!' : 'Keep studying!';
+            scoreEl.classList.add('visible');
+          }
+        }
+      };
+
+      function renderLearningPathPanel(container) {
+        if (currentLessonIndex < 0 || typeof PHASES === 'undefined') return;
+
+        var panel = document.createElement('div');
+        panel.className = 'ai-panel';
+
+        var current = flatLessons[currentLessonIndex];
+        var phaseIdx = current.phaseIndex;
+        var phase = PHASES[phaseIdx];
+        var lessonsInPhase = [];
+        var currentIdxInPhase = -1;
+
+        for (var i = 0; i < flatLessons.length; i++) {
+          if (flatLessons[i].phaseIndex === phaseIdx) {
+            if (i === currentLessonIndex) currentIdxInPhase = lessonsInPhase.length;
+            lessonsInPhase.push({ flat: flatLessons[i], flatIdx: i });
+          }
+        }
+
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon coral">\u{1F5FA}</div><div class="ai-panel-title">Learning Path</div></div>';
+        html += '<div class="ai-panel-subtitle">Phase ' + String(phase.id).padStart(2, '0') + ': ' + escapeHtml(phase.name) + '</div>';
+
+        html += '<div class="learning-timeline">';
+        lessonsInPhase.forEach(function (item, idx) {
+          var isCurrent = idx === currentIdxInPhase;
+          var isPrev = idx < currentIdxInPhase;
+          var cls = isCurrent ? 'current' : isPrev ? 'prev' : '';
+
+          if (idx > 0) {
+            var lineCls = idx <= currentIdxInPhase ? (idx === currentIdxInPhase ? 'active' : 'done') : '';
+            html += '<div class="timeline-line ' + lineCls + '"></div>';
+          }
+
+          if (item.flat.isReadable) {
+            html += '<a class="timeline-item ' + cls + '" href="lesson.html?path=' + item.flat.path + '" title="' + escapeAttr(item.flat.lessonName) + '">';
+          } else {
+            html += '<span class="timeline-item ' + cls + ' disabled" title="' + escapeAttr(item.flat.lessonName) + '">';
+          }
+          html += '<div class="timeline-dot"></div>';
+          html += '<div class="timeline-label">' + escapeHtml(item.flat.lessonName) + '</div>';
+          html += item.flat.isReadable ? '</a>' : '</span>';
+        });
+        html += '</div>';
+
+        var completedCount = currentIdxInPhase + 1;
+        var totalCount = lessonsInPhase.length;
+        var pct = Math.round((completedCount / totalCount) * 100);
+
+        html += '<div class="phase-progress-bar"><div class="phase-progress-fill" style="width:' + pct + '%"></div></div>';
+        html += '<div class="phase-progress-text">You\'ve completed ' + completedCount + ' of ' + totalCount + ' lessons in this phase</div>';
+
+        if (completedCount >= totalCount && phaseIdx < PHASES.length - 1) {
+          var nextPhase = PHASES[phaseIdx + 1];
+          html += '<div class="phase-complete-callout visible">Ready for Phase ' + String(nextPhase.id).padStart(2, '0') + ': ' + escapeHtml(nextPhase.name) + '</div>';
+        }
+
+        panel.innerHTML = html;
+        container.appendChild(panel);
+      }
+
+      function renderContinuePanel(container) {
+        if (currentLessonIndex < 0) return;
+
+        var panel = document.createElement('div');
+        panel.className = 'ai-panel';
+
+        var next = null;
+        for (var ci = currentLessonIndex + 1; ci < flatLessons.length; ci++) {
+          if (flatLessons[ci].isReadable) { next = flatLessons[ci]; break; }
+        }
+        var current = flatLessons[currentLessonIndex];
+        var phaseIdx = current.phaseIndex;
+        var phase = PHASES[phaseIdx];
+
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon blue">\u{1F680}</div><div class="ai-panel-title">Continue Learning</div></div>';
+        html += '<div class="continue-panel">';
+
+        if (next && next.path) {
+          html += '<a class="continue-big-btn" href="lesson.html?path=' + next.path + '">Next: ' + escapeHtml(next.lessonName) + ' \u2192</a>';
+        } else {
+          html += '<div class="continue-big-btn" style="background:var(--complete);border-color:var(--complete);">\u2705 You finished this phase!</div>';
+        }
+
+        html += '<div class="continue-links">';
+
+        var phaseSlug = extractPhaseSlug(phase, phaseIdx);
+        var firstLesson = phase.lessons[0] ? extractLessonSlug(phase.lessons[0], 0) : '';
+        html += '<a class="continue-link" href="lesson.html?path=phases/' + phaseSlug + '/' + firstLesson + '">Browse all Phase ' + String(phase.id).padStart(2, '0') + ' lessons</a>';
+        html += '<a class="continue-link" href="catalog.html">Full course catalog</a>';
+        html += '</div>';
+
+        html += '<div class="continue-callout">Run <code>/find-your-level</code> in Claude Code to see your full personalized learning path</div>';
+        html += '</div>';
+
+        panel.innerHTML = html;
+        container.appendChild(panel);
+      }
+
+      function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function escapeAttr(str) {
+        return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+    })();
+  </script>
+</body>
+</html>

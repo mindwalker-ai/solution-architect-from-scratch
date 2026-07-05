@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: agg_hub_sla_daily
+    description: "Gold — per hub per day delivery success rate for the hub-SLA dashboard."
+    columns:
+      - name: delivery_success_rate_pct
+        description: "Delivered ÷ final parcels, as a percentage."
+        tests:
+          - not_null

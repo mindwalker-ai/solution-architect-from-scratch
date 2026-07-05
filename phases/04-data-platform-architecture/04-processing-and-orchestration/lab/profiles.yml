@@ -1,0 +1,7 @@
+kirim_cepat_lab:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: kirim_cepat.duckdb
+      threads: 4

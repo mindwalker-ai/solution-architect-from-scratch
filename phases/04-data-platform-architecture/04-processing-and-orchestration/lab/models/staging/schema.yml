@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_scan_events
+    description: "Silver — deduplicated, typed scan events (one row per scan_id)."
+    columns:
+      - name: scan_id
+        description: "Unique scan identifier."
+        tests:
+          - not_null
+          - unique
+      - name: parcel_id
+        tests:
+          - not_null
+      - name: event_ts
+        tests:
+          - not_null
+      - name: hub_id
+        description: "FK to stg_hubs — a relationships test enforces referential integrity."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_hubs')
+              field: hub_id
+      - name: status
+        description: "Constrained to the known parcel lifecycle states."
+        tests:
+          - accepted_values:
+              values: ['picked_up', 'in_hub', 'in_transit', 'out_for_delivery', 'delivered', 'failed']
+
+  - name: stg_hubs
+    description: "Silver — hub dimension."
+    columns:
+      - name: hub_id
+        tests:
+          - not_null
+          - unique
