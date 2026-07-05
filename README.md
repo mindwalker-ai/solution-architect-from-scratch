@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Solution Architect from Scratch" width="100%">
+  <img src="assets/banner.png" alt="Solution Architect from Scratch" width="100%">
 </p>
 
 <p align="center">
