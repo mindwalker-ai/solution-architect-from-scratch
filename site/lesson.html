@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson - Solution Architect From Scratch</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2312379C'/><text x='3' y='22' font-size='14' font-weight='bold' font-family='system-ui' fill='%23DCEBFD'>OS</text></svg>">
+  <link rel="icon" type="image/png" href="logo.png">
   <meta name="description" content="Solution Architect From Scratch - Lesson Viewer">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -525,13 +525,74 @@
     }
 
     .lesson-article .mermaid-container {
+      position: relative;
       margin: 24px 0;
       display: flex;
       justify-content: center;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .lesson-article .mermaid-container svg {
       max-width: 100%;
+      height: auto;
+      cursor: zoom-in;
+    }
+
+    .mermaid-expand-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    .mermaid-expand-btn:hover {
+      opacity: 1;
+      color: var(--text);
+    }
+
+    .mermaid-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 32px;
+      overflow: auto;
+      cursor: zoom-out;
+    }
+
+    .mermaid-modal.is-open {
+      display: flex;
+    }
+
+    .mermaid-modal svg {
+      width: auto;
+      height: auto;
+      max-width: none;
+      min-width: min(1100px, 90vw);
+    }
+
+    .mermaid-modal-close {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      color: #fff;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
     .lesson-meta {
@@ -1419,7 +1480,7 @@
   <header class="site-header">
     <div class="header-inner">
       <a href="index.html" class="logo">
-        <span class="logo-icon">&#9679;</span> Solution Architect from Scratch
+        <img src="logo.png" alt="" class="logo-icon">Solution Architect from Scratch
       </a>
       <nav class="header-nav">
         <a href="index.html#phases">Phases</a>
@@ -1453,7 +1514,7 @@
     mermaid.initialize({
       startOnLoad: false,
       theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
-      fontFamily: 'Patrick Hand, cursive'
+      fontFamily: "'JetBrains Mono', ui-monospace, Consolas, monospace"
     });
     window._mermaidReady = mermaid;
   </script>
@@ -1985,6 +2046,36 @@
         });
       }
 
+      function getMermaidModal() {
+        var modal = document.getElementById('mermaidModal');
+        if (modal) return modal;
+        modal = document.createElement('div');
+        modal.className = 'mermaid-modal';
+        modal.id = 'mermaidModal';
+        modal.innerHTML = '<button class="mermaid-modal-close" aria-label="Close">&times;</button><div class="mermaid-modal-body"></div>';
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal || e.target.classList.contains('mermaid-modal-close')) closeMermaidModal();
+        });
+        document.body.appendChild(modal);
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') closeMermaidModal();
+        });
+        return modal;
+      }
+
+      function closeMermaidModal() {
+        var modal = document.getElementById('mermaidModal');
+        if (modal) modal.classList.remove('is-open');
+      }
+
+      function openMermaidModal(svgEl) {
+        var modal = getMermaidModal();
+        var body = modal.querySelector('.mermaid-modal-body');
+        body.innerHTML = '';
+        body.appendChild(svgEl.cloneNode(true));
+        modal.classList.add('is-open');
+      }
+
       function renderMermaidBlocks() {
         var check = setInterval(function () {
           if (!window._mermaidReady) return;
@@ -1995,6 +2086,17 @@
             var def = block.textContent;
             window._mermaidReady.render(id + '-svg', def).then(function (result) {
               block.innerHTML = result.svg;
+              var container = block.closest('.mermaid-container');
+              var svgEl = block.querySelector('svg');
+              if (container && svgEl) {
+                var btn = document.createElement('button');
+                btn.className = 'mermaid-expand-btn';
+                btn.type = 'button';
+                btn.textContent = 'Expand';
+                btn.addEventListener('click', function () { openMermaidModal(svgEl); });
+                container.appendChild(btn);
+                svgEl.addEventListener('click', function () { openMermaidModal(svgEl); });
+              }
             }).catch(function () {
               block.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">Diagram could not be rendered.</p>';
             });

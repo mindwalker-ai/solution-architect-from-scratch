@@ -144,8 +144,10 @@ a:hover {
 }
 
 .logo-icon {
-  color: var(--accent);
-  font-size: 1.1rem;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .header-nav {
@@ -203,33 +205,22 @@ a:hover {
   inset: 0;
   z-index: 1;
   overflow: hidden;
-}
-
-.hero-scene spline-viewer {
-  position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-}
-
-.hero-scene spline-viewer canvas {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-}
-
-
-
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background:
-    radial-gradient(ellipse at center, transparent 0%, rgba(220,235,253,0.35) 70%),
-    linear-gradient(to top, rgba(245,249,255,1) 0%, rgba(245,249,255,0.85) 8%, transparent 25%),
-    linear-gradient(to left, rgba(245,249,255,1) 0%, rgba(245,249,255,0.85) 12%, transparent 30%);
   pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 22%, rgba(53, 83, 255, 0.14), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, rgba(53, 83, 255, 0.08), transparent 70%);
+}
+
+.hero-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(53, 83, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(53, 83, 255, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 65% at 50% 30%, black 35%, transparent 85%);
+  mask-image: radial-gradient(ellipse 85% 65% at 50% 30%, black 35%, transparent 85%);
 }
 
 .hero-content {

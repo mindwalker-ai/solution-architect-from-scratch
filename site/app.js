@@ -261,17 +261,3 @@
     return div.innerHTML;
   }
 })();
-
-(function() {
-  var viewer = document.querySelector('spline-viewer');
-  if (!viewer) return;
-  var interval = setInterval(function() {
-    var shadow = viewer.shadowRoot;
-    if (!shadow) return;
-    var style = document.createElement('style');
-    style.textContent = '#logo, a[href*="spline"], div[id="logo"] { display: none !important; height: 0 !important; overflow: hidden !important; }';
-    shadow.appendChild(style);
-    clearInterval(interval);
-  }, 500);
-  setTimeout(function() { clearInterval(interval); }, 10000);
-})();
